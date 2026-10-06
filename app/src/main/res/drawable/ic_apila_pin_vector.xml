@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="56dp"
+    android:viewportWidth="48"
+    android:viewportHeight="56">
+    <!-- Outer orange map pin -->
+    <path
+        android:fillColor="#E44918"
+        android:pathData="M24,2 C12.95,2 4,10.95 4,22 C4,35 24,54 24,54 C24,54 44,35 44,22 C44,10.95 35.05,2 24,2 Z" />
+    <!-- White house icon inside pin -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M24,12 L14,21 L16.5,21 L16.5,31 L21,31 L21,25 L27,25 L27,31 L31.5,31 L31.5,21 L34,21 Z" />
+</vector>

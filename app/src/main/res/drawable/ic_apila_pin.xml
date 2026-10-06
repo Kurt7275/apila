@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="44dp"
+    android:height="52dp"
+    android:viewportWidth="44"
+    android:viewportHeight="52">
+    <!-- Outer orange pin -->
+    <path
+        android:fillColor="#E44918"
+        android:pathData="M22,2 C10.95,2 2,10.95 2,22 C2,35.5 22,50 22,50 C22,50 42,35.5 42,22 C42,10.95 33.05,2 22,2 Z" />
+    <!-- White inner circle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M22,9 C15.37,9 10,14.37 10,21 C10,27.63 15.37,33 22,33 C28.63,33 34,27.63 34,21 C34,14.37 28.63,9 22,9 Z" />
+    <!-- Orange house icon in center -->
+    <path
+        android:fillColor="#E44918"
+        android:pathData="M22,13 L14.5,19.5 L16.5,19.5 L16.5,28 L20,28 L20,23.5 L24,23.5 L24,28 L27.5,28 L27.5,19.5 L29.5,19.5 Z" />
+</vector>

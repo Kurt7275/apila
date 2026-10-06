@@ -1,0 +1,98 @@
+<resources>
+    <string name="app_name">APILA</string>
+    <string name="app_subtitle">Barangay Lapasan Community Programs</string>
+    <string name="barangay_lapasan">Barangay Lapasan, Cagayan de Oro City</string>
+
+    <!-- Authentication -->
+    <string name="login_title">Welcome to APILA</string>
+    <string name="login_subtitle">Register &amp; participate in Barangay Lapasan community programs</string>
+    <string name="email_hint">Email Address</string>
+    <string name="password_hint">Password</string>
+    <string name="btn_login">Sign In</string>
+    <string name="btn_register">Create Resident Account</string>
+    <string name="no_account">Don\'t have an account? Sign Up</string>
+    <string name="have_account">Already registered? Log In</string>
+    <string name="quick_test_accounts">Quick Demo Logins</string>
+    <string name="quick_resident">Demo Resident</string>
+    <string name="quick_admin">Demo Barangay Admin</string>
+
+    <!-- Registration -->
+    <string name="register_title">Resident Registration</string>
+    <string name="register_subtitle">Please provide your Barangay Lapasan resident information</string>
+    <string name="full_name_hint">Full Name (First, Middle, Last)</string>
+    <string name="phone_hint">Mobile Number (e.g. 09171234567)</string>
+    <string name="purok_hint">Select Purok / Sitio</string>
+    <string name="address_hint">House # / Street Address</string>
+
+    <!-- Navigation Resident -->
+    <string name="nav_home">Home</string>
+    <string name="nav_programs">Programs</string>
+    <string name="nav_my_programs">My Programs</string>
+    <string name="nav_history">History</string>
+    <string name="nav_notifications">Notifications</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- Navigation Admin -->
+    <string name="nav_admin_dashboard">Dashboard</string>
+    <string name="nav_admin_programs">Programs</string>
+    <string name="nav_admin_announcements">Notices</string>
+    <string name="nav_admin_reports">Reports</string>
+
+    <!-- Common UI -->
+    <string name="search_programs_hint">Search programs by title or venue…</string>
+    <string name="filter_all">All Categories</string>
+    <string name="filter_open_only">Open Slots Only</string>
+    <string name="available_slots">Available Slots</string>
+    <string name="slots_left">%1$d of %2$d slots remaining</string>
+    <string name="slots_full">Slots Full / Closed</string>
+    <string name="register_program">Register for Program</string>
+    <string name="cancel_registration">Cancel Registration</string>
+    <string name="status_open">Open</string>
+    <string name="status_closed">Closed</string>
+    <string name="status_cancelled">Cancelled</string>
+    <string name="status_completed">Completed</string>
+
+    <!-- Attendance -->
+    <string name="attendance_present">Present</string>
+    <string name="attendance_absent">Absent</string>
+    <string name="attendance_pending">Pending</string>
+
+    <!-- Admin -->
+    <string name="btn_create_program">Create New Program</string>
+    <string name="btn_save_program">Save &amp; Publish</string>
+    <string name="btn_record_attendance">Record Attendance</string>
+    <string name="btn_publish_announcement">Publish Announcement</string>
+    <string name="admin_portal_tag">Barangay Personnel Portal</string>
+
+    <!-- Dialogs & Prompts -->
+    <string name="confirm_registration_title">Confirm Registration</string>
+    <string name="confirm_registration_msg">Would you like to register for "%1$s"? Please ensure you can attend at the scheduled time.</string>
+    <string name="confirm_cancel_title">Cancel Registration?</string>
+    <string name="confirm_cancel_msg">Are you sure you want to cancel your registration? Your reserved slot will be released to other residents.</string>
+
+    <!-- Lapasan Puroks -->
+    <string-array name="lapasan_puroks">
+        <item>Purok 1 - Kolambog</item>
+        <item>Purok 2 - Lapasan Proper</item>
+        <item>Purok 3 - San Pedro</item>
+        <item>Purok 4 - San Juan</item>
+        <item>Purok 5 - Sta. Cruz</item>
+        <item>Purok 6 - Riverside</item>
+        <item>Purok 7 - Bitan-ag</item>
+        <item>Purok 8 - Agora Area</item>
+        <item>Purok 9 - Highway Zone</item>
+        <item>Purok 10 - Coastal Zone</item>
+    </string-array>
+
+    <!-- Program Categories -->
+    <string-array name="program_categories">
+        <item>Health &amp; Wellness</item>
+        <item>Youth &amp; Sports</item>
+        <item>Livelihood &amp; Skills Training</item>
+        <item>Senior Citizens Welfare</item>
+        <item>Disaster Preparedness &amp; Safety</item>
+        <item>Education &amp; Literacy</item>
+        <item>Community Clean-up &amp; Environment</item>
+        <item>General Civic Assembly</item>
+    </string-array>
+</resources>

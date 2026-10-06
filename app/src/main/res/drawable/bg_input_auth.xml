@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Clean input field background: soft gray fill, rounded corners -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#0AF45113">
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="14dp" />
+            <solid android:color="#F7F9FC" />
+            <stroke
+                android:width="1.5dp"
+                android:color="#E8ECF0" />
+        </shape>
+    </item>
+</ripple>

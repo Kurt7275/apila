@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base application theme -->
+    <style name="Theme.Apila" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#F45113</item>
+        <item name="colorPrimaryVariant">#D63D05</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">#D97706</item>
+        <item name="colorSecondaryVariant">#B45309</item>
+        <item name="colorSecondaryContainer">#FFEAD6</item>
+        <item name="colorOnSecondaryContainer">#F45113</item>
+        <item name="android:statusBarColor">#00000000</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowBackground">@color/warm_background</item>
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:fontFamily">sans-serif</item>
+    </style>
+
+    <!-- Auth screens: transparent status bar, edge-to-edge illustration -->
+    <style name="Theme.Apila.Auth" parent="Theme.Apila">
+        <item name="android:statusBarColor">#00000000</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">#00000000</item>
+    </style>
+
+    <!-- Splash: clean warm background, no action bar -->
+    <style name="Theme.Apila.Splash" parent="Theme.Apila">
+        <item name="android:statusBarColor">#00000000</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@color/warm_background</item>
+    </style>
+
+    <!-- Toolbar style -->
+    <style name="Widget.Apila.Toolbar" parent="Widget.MaterialComponents.Toolbar.Primary">
+        <item name="android:background">@color/brand_orange</item>
+        <item name="titleTextColor">@color/white</item>
+        <item name="subtitleTextColor">#E0E0E0</item>
+    </style>
+
+    <!-- Card style -->
+    <style name="Widget.Apila.Card" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardCornerRadius">14dp</item>
+        <item name="cardElevation">2dp</item>
+        <item name="cardBackgroundColor">@color/surface</item>
+    </style>
+
+    <!-- Chip style -->
+    <style name="Widget.Apila.Chip" parent="Widget.MaterialComponents.Chip.Choice">
+        <item name="chipCornerRadius">18dp</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+</resources>

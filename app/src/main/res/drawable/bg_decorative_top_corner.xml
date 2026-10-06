@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="160dp"
+    android:viewportWidth="200"
+    android:viewportHeight="160">
+    <!-- Subtle organic peach curved accent in top right -->
+    <path
+        android:fillColor="#40FFE2C7"
+        android:pathData="M200,0 L80,0 C90,40 110,80 140,110 C165,135 185,150 200,160 Z" />
+    <path
+        android:fillColor="#50FFF1E3"
+        android:pathData="M200,0 L120,0 C130,30 145,60 165,85 C185,110 195,120 200,130 Z" />
+</vector>

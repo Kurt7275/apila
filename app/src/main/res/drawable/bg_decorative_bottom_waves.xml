@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="360dp"
+    android:height="90dp"
+    android:viewportWidth="360"
+    android:viewportHeight="90">
+    <!-- Subtle soft peach organic wave 1 -->
+    <path
+        android:fillColor="#35FFE2C7"
+        android:pathData="M0,40 C60,20 140,55 220,30 C280,12 320,38 360,25 L360,90 L0,90 Z" />
+    <!-- Subtle soft cream organic wave 2 -->
+    <path
+        android:fillColor="#45FFF1E3"
+        android:pathData="M0,60 C70,45 150,70 230,52 C290,38 330,58 360,50 L360,90 L0,90 Z" />
+</vector>

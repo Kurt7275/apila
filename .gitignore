@@ -1,0 +1,37 @@
+# Android / Gradle
+*.iml
+.gradle/
+build/
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/captures
+.externalNativeBuild
+.cxx
+*.apk
+*.aab
+
+# Firebase — NEVER commit your google-services.json
+google-services.json
+
+# Keystore files — NEVER commit signing keys
+*.jks
+*.keystore
+keystore.properties
+
+# Kotlin / JVM
+*.class
+*.jar (except Gradle wrapper)
+out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (if any tooling)
+node_modules/

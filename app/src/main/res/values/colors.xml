@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary">#0A6836</color>
+    <color name="primary_dark">#074B26</color>
+    <color name="primary_light">#E6F4EA</color>
+    <color name="primary_container">#CBEFD4</color>
+    
+    <color name="secondary">#D97706</color>
+    <color name="secondary_dark">#B45309</color>
+    <color name="secondary_light">#FEF3C7</color>
+
+    <color name="accent_gold">#F59E0B</color>
+    <color name="accent_gold_dark">#B45309</color>
+
+    <!-- APILA Official Palette -->
+    <color name="brand_orange">#F45113</color>
+    <color name="brand_orange_dark">#D63D05</color>
+    <color name="brand_orange_light">#FFE2C7</color>
+    <color name="brand_orange_muted">#FFEAD6</color>
+    <color name="dark_navy">#101828</color>
+    <color name="warm_background">#FFF9F3</color>
+    <color name="bg_warm_tint">#FFF9F3</color>
+    <color name="cream">#FFF1E3</color>
+    <color name="soft_peach">#FFE2C7</color>
+    <color name="muted_blue">#7FA9C5</color>
+    <color name="natural_green">#78A66A</color>
+    <color name="info_box_bg">#FFF1E3</color>
+    <color name="info_box_text">#F45113</color>
+    <color name="text_dark">#101828</color>
+    <color name="text_subtle">#667085</color>
+    <color name="input_border">#D0D5DD</color>
+
+    <!-- Backgrounds & Surfaces -->
+    <color name="background">#F8FAFC</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_variant">#F1F5F9</color>
+    <color name="card_background">#FFFFFF</color>
+
+    <!-- Typography -->
+    <color name="text_primary">#0F172A</color>
+    <color name="text_secondary">#475569</color>
+    <color name="text_tertiary">#94A3B8</color>
+    <color name="text_on_primary">#FFFFFF</color>
+    <color name="text_on_secondary">#FFFFFF</color>
+
+    <!-- Status & Badges -->
+    <color name="status_open_bg">#DEF7EC</color>
+    <color name="status_open_text">#03543F</color>
+    <color name="status_closed_bg">#FDE8E8</color>
+    <color name="status_closed_text">#9B1C1C</color>
+    <color name="status_warning_bg">#FEF08A</color>
+    <color name="status_warning_text">#713F12</color>
+
+    <color name="badge_present_bg">#DCFCE7</color>
+    <color name="badge_present_text">#15803D</color>
+    <color name="badge_absent_bg">#FEE2E2</color>
+    <color name="badge_absent_text">#B91C1C</color>
+    <color name="badge_pending_bg">#FEF3C7</color>
+    <color name="badge_pending_text">#B45309</color>
+
+    <!-- Categories -->
+    <color name="cat_health">#0D9488</color>
+    <color name="cat_sports">#6366F1</color>
+    <color name="cat_livelihood">#D97706</color>
+    <color name="cat_seniors">#8B5CF6</color>
+    <color name="cat_disaster">#DC2626</color>
+    <color name="cat_education">#2563EB</color>
+    <color name="cat_general">#4B5563</color>
+
+    <!-- Borders & Dividers -->
+    <color name="divider">#E2E8F0</color>
+    <color name="stroke_light">#E2E8F0</color>
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+</resources>
