@@ -327,19 +327,17 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- ── DEMO SHORTCUTS ── -->
+            <!-- ── DEMO SHORTCUT ── -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:orientation="horizontal">
+                android:orientation="vertical">
 
                 <LinearLayout
                     android:id="@+id/btnQuickResident"
-                    android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="6dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="42dp"
                     android:background="@drawable/bg_demo_chip"
                     android:clickable="true"
                     android:focusable="true"
@@ -348,31 +346,21 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Demo Resident"
+                        android:text="Fill Demo Resident"
                         android:textColor="#C04A0D"
-                        android:textSize="12sp"
+                        android:textSize="12.5sp"
                         android:textStyle="bold" />
                 </LinearLayout>
 
-                <LinearLayout
-                    android:id="@+id/btnQuickAdmin"
-                    android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="6dp"
-                    android:background="@drawable/bg_btn_google_auth"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:gravity="center">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Demo Admin"
-                        android:textColor="#7C3400"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
+                <TextView
+                    android:id="@+id/tvWebPortalNotice"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:text="Barangay Personnel? Access the APILA Web Portal on your desktop."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp" />
             </LinearLayout>
 
             <!-- ── REGISTER FOOTER ── -->

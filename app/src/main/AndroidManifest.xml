@@ -47,29 +47,6 @@
             android:name=".ui.resident.ProgramDetailActivity"
             android:exported="false" />
 
-        <!-- Barangay Personnel / Admin Activities -->
-        <activity
-            android:name=".ui.admin.AdminMainActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.admin.AdminCreateEditProgramActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity
-            android:name=".ui.admin.AdminParticipantsActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.admin.AdminAttendanceActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.admin.AdminCreateAnnouncementActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
         <!-- Firebase Cloud Messaging Service -->
         <service
             android:name=".service.ApilaFirebaseMessagingService"

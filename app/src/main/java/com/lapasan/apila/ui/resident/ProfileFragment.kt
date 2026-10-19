@@ -9,7 +9,6 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.lapasan.apila.databinding.FragmentProfileBinding
-import com.lapasan.apila.ui.admin.AdminMainActivity
 import com.lapasan.apila.ui.auth.AuthViewModel
 import com.lapasan.apila.ui.auth.LoginActivity
 
@@ -58,14 +57,6 @@ class ProfileFragment : Fragment() {
     }
 
     private fun setupListeners() {
-        binding.btnSwitchToAdmin.setOnClickListener {
-            // Switch session to admin for testing the Barangay Personnel Portal
-            authViewModel.switchDemoRole(asAdmin = true)
-            val intent = Intent(requireContext(), AdminMainActivity::class.java)
-            startActivity(intent)
-            requireActivity().finish()
-        }
-
         binding.btnLogout.setOnClickListener {
             MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Sign Out")

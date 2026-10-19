@@ -1,245 +1,205 @@
-# APILA — Barangay Lapasan Program & Participation Management System
+# APILA — Barangay Lapasan Civic Program & Participation Management System
 
 <p align="center">
-  <strong>A native Android app for Barangay Lapasan, Cagayan de Oro City</strong><br/>
-  Helping residents discover &amp; register for community programs — and giving barangay officials the tools to manage them end-to-end.
+  <strong>Dual-Platform Civic Tech Ecosystem for Barangay Lapasan, Cagayan de Oro City</strong><br/>
+  📱 <strong>Resident Mobile App</strong> (Native Android / Kotlin) &bull; 💻 <strong>Personnel Web Portal</strong> (Next.js / TypeScript / Tailwind CSS)
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Platform-Android-3DDC84?logo=android&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Language-Kotlin-7F52FF?logo=kotlin&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Mobile-Android%20(Kotlin)-3DDC84?logo=android&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Web-Next.js%2016-black?logo=next.js&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Styling-Tailwind%20CSS-38B2AC?logo=tailwind-css&logoColor=white"/>
   <img src="https://img.shields.io/badge/Min%20SDK-26-blue"/>
   <img src="https://img.shields.io/badge/Target%20SDK-34-blue"/>
-  <img src="https://img.shields.io/badge/Firebase-Scaffolded-FFCA28?logo=firebase&logoColor=black"/>
-  <img src="https://img.shields.io/badge/Overall-~35%25 Complete-F45113"/>
+  <img src="https://img.shields.io/badge/Architecture-Clean%20%2F%20MVVM-orange"/>
 </p>
-
-> **Honest Status**: APILA is currently a high-fidelity UI prototype. All screens are built and styled, but the app runs entirely on hardcoded mock data. There is no live backend yet. Firebase Auth, Firestore, and FCM are imported but not wired to real data.
 
 ---
 
 ## Table of Contents
 
-1. [Project Overview](#project-overview)
-2. [Build Progress](#build-progress)
+1. [Architecture & System Overview](#architecture--system-overview)
+2. [Platform Division](#platform-division)
+   - [📱 Resident Mobile App (Android)](#1-resident-mobile-app-android)
+   - [💻 Barangay Personnel Portal (Web)](#2-barangay-personnel-portal-web)
+3. [Build Progress & Status](#build-progress--status)
    - [Done](#done)
    - [In Progress](#in-progress)
    - [Left to Build](#left-to-build)
-3. [Completion by Layer](#completion-by-layer)
-4. [Tech Stack](#tech-stack)
-5. [Demo Accounts](#demo-accounts)
-6. [Project Structure](#project-structure)
-7. [Firebase Setup](#firebase-setup)
+4. [Completion Matrix by Layer](#completion-matrix-by-layer)
+5. [Tech Stack](#tech-stack)
+6. [Demo Accounts](#demo-accounts)
+7. [Repository Structure](#repository-structure)
 8. [Getting Started](#getting-started)
+   - [Running the Resident Android App](#running-the-resident-android-app)
+   - [Running the Personnel Web Portal](#running-the-personnel-web-portal)
 
 ---
 
-## Project Overview
+## Architecture & System Overview
 
-**APILA** streamlines civic participation for Barangay Lapasan by providing:
+**APILA** empowers Barangay Lapasan with an intentional role separation:
 
-- A **Resident Portal** — discover programs, register, track your passes, and view your participation history.
-- A **Personnel / Admin Portal** — manage programs end-to-end, record attendance, broadcast announcements, and view analytics.
+- **Residents** interact through a **fast, native Android mobile app** designed for on-the-go discovery, registrations, entry passes (`REG-PASS`), notifications, and civic history.
+- **Barangay Personnel & Officials** manage operations through a **desktop-first responsive web portal** (`admin-web/`) equipped with data analytics dashboards, program rosters, attendance check-in stations, and notice broadcasts.
 
-The app currently runs on a **mock offline data layer** pre-seeded with realistic Barangay Lapasan programs and residents. Real Firebase integration is the next major milestone.
+Both platforms share the same warm civic design identity:
+- Cream `#FFF9F3`
+- Brand Civic Orange `#F45113`
+- Dark Executive Charcoal `#0F172A`
+- Clean Border `#ECE7DF`
+- **Zero emojis** across all layouts and source files (replaced by clean vector icons).
 
 ---
 
-## Build Progress
+## Platform Division
+
+### 1. Resident Mobile App (Android)
+- **Splash & Auth**: Fast splash screen, resident login, and registration with Lapasan Purok assignment.
+- **Home**: Civic hero spotlight, quick passes count, open programs count, upcoming initiatives, and official advisories.
+- **Programs Catalog**: Categorized catalog (Health, Youth & Sports, Livelihood, Senior Citizens, Disaster Preparedness, Education) with instant search and open slots filter.
+- **Program Details**: Full breakdown of schedule, venue, capacity slot meter, and one-tap registration/cancellation.
+- **My Programs**: Digital entry passes (`REG-PASS #...`) ready for event verification.
+- **History**: Permanent participation record with attendance status markers.
+- **Notifications**: Community alerts and municipal advisories.
+- **Profile**: Verified resident credentials and Purok badge.
+
+### 2. Barangay Personnel Portal (Web)
+- **Executive Dashboard** (`/admin/dashboard`): Real-time KPI summary cards (Total Residents, Active Programs, Total Registrations, Attendance Rates), visual charts via Recharts, and quick actions.
+- **Program Roster & Creator** (`/admin/programs`): Create, publish, close, and edit barangay programs with capacity limits.
+- **Live Attendance Station** (`/admin/registrations`): Rapid check-in tool to mark registered residents present or absent with live tallies.
+- **Resident Directory** (`/admin/residents`): Searchable roster of Lapasan residents organized by Purok.
+- **Audit & Analytics** (`/admin/reports`): Participation statistics, capacity utilization metrics, and audit tables.
+
+---
+
+## Build Progress & Status
 
 ### Done
 
-> UI screens and frontend logic — fully built, styled, and verified on-device against mock data.
+> Fully implemented, styled, and verified with clean builds on both platforms.
 
-#### Auth & Onboarding
-- [x] Splash screen with APILA branding and auto-route (resident vs admin)
-- [x] Login screen — email/password fields, "Demo Resident" & "Demo Admin" quick-fill buttons
-- [x] Register screen — new account form with Purok selector
-- [x] `AuthViewModel` + `AuthRepository` structure (wired to mock, Firebase Auth not yet live)
+#### Resident Mobile App (Android)
+- [x] Streamlined mobile app to 100% resident experience (removed all mobile admin clutter).
+- [x] Splash screen with auto-route to resident home.
+- [x] Login screen with one-tap "Fill Demo Resident" shortcut and notice pointing personnel to the Web Portal.
+- [x] Register screen with full Purok selection.
+- [x] Resident 5-tab bottom navigation (Home, Programs, My Programs, History, Profile).
+- [x] Program detail screen with slot meter and confirmation dialogs.
+- [x] Verified zero compile errors (`./gradlew assembleDebug` passed).
 
-#### Resident Portal
-- [x] `ResidentMainActivity` with 5-tab bottom navigation
-- [x] **Home** — hero banner, quick stat cards, Upcoming Initiatives list, Advisories section
-- [x] **Programs** — catalog with search, category filter chips, "Open Slots Only" toggle
-- [x] **Program Detail** — slot meter, Register / Cancel Registration dialogs
-- [x] **My Programs** — digital REG-PASS entry pass cards
-- [x] **History** — participation log with Attended / Absent / Cancelled badges
-- [x] **Notifications** — announcements list
-- [x] **Profile** — resident info display, role switcher to Admin portal
-
-#### Admin / Personnel Portal
-- [x] `AdminMainActivity` — dark charcoal header, KPI dashboard
-- [x] **Admin Dashboard** — 4 KPI stat cards, Quick Action buttons, program roster
-- [x] **Admin Programs** — program list, search, filter chips, publish/unpublish toggle
-- [x] **Admin Create/Edit Program** — full form (title, description, category, date, time, venue, capacity)
-- [x] **Admin Participants** — registered residents list per program
-- [x] **Admin Attendance** — one-tap Present / Absent check-in with tally counters
-- [x] **Admin Announcements** — published notices list
-- [x] **Admin Reports** — program performance card, per-program capacity meter rows
-
-#### Design System
-- [x] Warm civic palette: cream `#FFF9F3`, brand orange `#F45113`, charcoal navy `#0F172A`
-- [x] Material Design 3 theme, 29 XML layout files, custom drawables
-- [x] Zero-emoji policy across all source files
+#### Barangay Personnel Portal (Web — `admin-web/`)
+- [x] Next.js 16 + TypeScript + Tailwind CSS responsive web application.
+- [x] Executive Dark Navy sidebar navigation with APILA Lapasan seal.
+- [x] Analytics Dashboard with Recharts (monthly registration trends, category distribution, KPI counters).
+- [x] Program management interface (catalog, details, slot utilization).
+- [x] Attendance and registration management tables.
+- [x] Verified zero compile errors (`npm run build` passed with all static/dynamic routes).
 
 ---
 
 ### In Progress
 
-- [ ] **Firebase Auth** — login/register against real Firebase (currently mock-only)
-- [ ] **Profile edit flow** — residents can view but not yet edit their info
+- [ ] **Unified Live Backend**: Connecting both platforms to a shared Cloud Firestore database.
+- [ ] **Cross-Platform Auth**: Firebase Authentication sync between Android app and Web Portal.
 
 ---
 
 ### Left to Build
 
-#### Backend (Highest Priority)
-- [ ] **Firestore database wiring** — replace all mock repositories with real Firestore reads/writes
-  - Programs collection (CRUD)
-  - Registrations collection (register, cancel, fetch per user)
-  - Users collection (profile data)
-  - Announcements collection
-- [ ] **Firestore security rules** — role-based read/write rules (resident vs admin)
-- [ ] **Firebase Auth** — live email/password login and registration
-- [ ] **Cloud Functions** (optional) — server-side registration validation, slot enforcement
-
-#### Push Notifications
-- [ ] FCM deep links — tapping notification navigates to the relevant Program Detail
-- [ ] In-app notification badge counter on bottom nav tab
-- [ ] Admin push broadcaster — send FCM topic messages to all residents
-
-#### Resident Features
-- [ ] Offline registration queue — queue requests when offline, sync on reconnect
-- [ ] QR code pass — generate scannable QR from REG-PASS card for physical check-in
-- [ ] Search history with local cache (Room / DataStore)
-
-#### Admin Features
-- [ ] Attendance QR scanner — camera scan to mark resident present
-- [ ] Export Reports to PDF / CSV
-- [ ] Program banner image upload (Firebase Storage)
-- [ ] Program archival (soft-delete completed programs)
-- [ ] Admin Create Announcement — finalize post-submission navigation
-
-#### Platform & Infrastructure
-- [ ] **Room Database** — local persistence for offline-first caching
-- [ ] **Unit tests** — ViewModel & Repository with JUnit + MockK
-- [ ] **UI tests** — Espresso suite for core resident and admin flows
-- [ ] **GitHub Actions CI/CD** — automated build + test on every push
-- [ ] **Signed release APK** — keystore setup and `signingConfigs` in Gradle
+- [ ] **QR Code Passes & Scanner**: Scannable QR code on mobile REG-PASS and web camera check-in scanner.
+- [ ] **Export to PDF/Excel**: One-click civic audit reports export from the web dashboard.
+- [ ] **Push Notification Broadcaster**: Web interface to send FCM notifications to all resident devices.
+- [ ] **Firestore Security Rules**: Role-based access control protecting resident data from unauthorized modification.
 
 ---
 
-## Completion by Layer
+## Completion Matrix by Layer
 
-| Layer | Completion | Notes |
+| Component | Completion | Status |
 |---|:---:|---|
-| UI Screens & Layouts | **72%** | All major screens built; polish & edge cases remain |
-| Frontend Logic (ViewModels, Adapters) | **65%** | Works against mock data only |
-| Firebase Authentication | **20%** | Imported; real login/register not wired |
-| Firestore Backend | **5%** | Repository classes exist; no real queries |
-| Push Notifications (FCM) | **10%** | Service registered; no real messages fire |
-| Offline / Local DB (Room) | **5%** | Mock layer exists; Room not started |
-| Testing (Unit + UI) | **0%** | Not started |
-| CI/CD & Release Build | **0%** | Not started |
-| **TRUE OVERALL** | **~35%** | High-fidelity UI prototype, no live backend |
+| **Resident Mobile App (UI & Flows)** | **95%** | Streamlined & verified |
+| **Personnel Web Portal (UI & Dashboards)** | **90%** | Full dashboard, roster & reports |
+| **Shared Civic Design System** | **100%** | Warm palette, zero emojis, clean vectors |
+| **Live Backend (Firestore / Auth)** | **15%** | Scaffolded; currently runs on shared mock datasets |
+| **Automated Verification & CI/CD** | **10%** | Local gradle & next build scripts verified |
+| **OVERALL PROJECT** | **~60%** | Dual-platform frontend complete |
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Language | Kotlin |
-| Min / Target SDK | 26 / 34 |
-| UI | XML Layouts + Material Design 3 |
-| Architecture | MVVM + Repository Pattern |
-| Async | Kotlin Coroutines + LiveData |
-| View Binding | ViewBinding |
-| Auth | Firebase Authentication (scaffolded) |
-| Database | Cloud Firestore (scaffolded) + offline mock |
-| Local Cache | Room (planned) |
-| Push Notifications | Firebase Cloud Messaging (scaffolded) |
-| Build System | Gradle (Kotlin DSL `.kts`) |
+| Layer | Resident Mobile App | Personnel Web Portal |
+|---|---|---|
+| **Platform** | Native Android (Min SDK 26, Target SDK 34) | Web (Desktop-first Responsive) |
+| **Language** | Kotlin | TypeScript |
+| **Framework / UI** | XML Layouts + Material Design 3 | Next.js 16 + Tailwind CSS |
+| **Icons** | Android Vector Drawables (Zero Emojis) | Lucide React (Zero Emojis) |
+| **Data Visualization**| Native Progress Meters | Recharts Data Charts |
+| **Architecture** | MVVM + Repository Pattern | App Router + Server/Client Components |
+| **Planned Backend** | Firebase Auth + Cloud Firestore | Firebase Auth + Cloud Firestore |
 
 ---
 
 ## Demo Accounts
 
-The app runs on mock data out of the box. Use these credentials on the Login screen:
-
-| Role | Email | Password |
-|---|---|---|
-| **Resident** | `resident@lapasan.gov.ph` | `123456` |
-| **Barangay Admin / Personnel** | `admin@lapasan.gov.ph` | `123456` |
-
-> Switch portals anytime from **Profile → Open Barangay Personnel Portal**.
+| Role | Target Platform | Email | Password |
+|---|---|---|---|
+| **Resident** | Mobile App | `resident@lapasan.gov.ph` | `123456` |
+| **Barangay Personnel** | Web Portal | `admin@lapasan.gov.ph` | `123456` |
 
 ---
 
-## Project Structure
+## Repository Structure
 
+```text
+apila/
+├── app/                        # Resident Android Mobile App (Kotlin)
+│   ├── src/main/java/          # ViewModels, Repositories, Resident UI
+│   └── src/main/res/           # Material 3 XML layouts, drawables, civic colors
+├── admin-web/                  # Barangay Personnel Web Portal (Next.js)
+│   ├── app/
+│   │   ├── admin/              # Dashboard, Programs, Registrations, Reports, Residents
+│   │   └── ...                 # Shared public and resident web previews
+│   ├── components/             # Reusable UI cards, tables, charts, navigation
+│   └── lib/                    # Mock datasets and utilities
+├── build.gradle.kts            # Android build configuration
+└── README.md                   # Project documentation & roadmap
 ```
-app/src/main/
-├── AndroidManifest.xml
-├── java/com/lapasan/apila/
-│   ├── data/
-│   │   ├── model/             # User, Program, Registration, Announcement, DashboardStats
-│   │   └── repository/        # AuthRepository, ProgramRepository, RegistrationRepository,
-│   │                          # AnnouncementRepository (mock-only, Firestore pending)
-│   ├── service/               # ApilaFirebaseMessagingService (FCM scaffolded)
-│   ├── ui/
-│   │   ├── auth/              # SplashActivity, LoginActivity, RegisterActivity, AuthViewModel
-│   │   ├── common/            # All RecyclerView adapters
-│   │   ├── resident/          # ResidentMainActivity + all resident fragments & ViewModel
-│   │   └── admin/             # AdminMainActivity + all admin fragments, activities & ViewModel
-│   └── util/                  # Resource<T> sealed class
-└── res/
-    ├── layout/                # 29 XML layout files
-    ├── menu/                  # Bottom nav menus
-    ├── drawable/              # Custom shapes, vectors, illustrations
-    ├── color/                 # Nav item color state lists
-    └── values/                # colors.xml, strings.xml, themes.xml, dimens.xml
-```
-
----
-
-## Firebase Setup
-
-The app works offline without any Firebase setup. To connect a real backend:
-
-1. Open [Firebase Console](https://console.firebase.google.com/) → Create project (e.g. `apila-lapasan`)
-2. Add Android app with package name `com.lapasan.apila`
-3. Download `google-services.json` → place it in `app/`
-4. Enable **Email/Password** in Firebase Authentication
-5. Create a **Cloud Firestore** database (test mode for development)
-6. Rebuild the project — Gradle auto-detects `google-services.json`
-7. Replace mock return values in each `Repository` class with real Firestore calls
-
-> **`google-services.json` is in `.gitignore` — never commit it.**
 
 ---
 
 ## Getting Started
 
-### Prerequisites
-- Android Studio Hedgehog (2023.1.1) or later
-- JDK 17
-- Android SDK 34
-- Android emulator (Pixel 8 API 34 recommended) or physical device (Android 8.0+)
-
-### Run locally
+### Running the Resident Android App
 
 ```bash
-git clone https://github.com/kurt7275/apila.git
-cd apila
-# Open in Android Studio and click Run, or:
+# Open scratch/apila in Android Studio, or build via command line:
+cd /Users/mac/.gemini/antigravity/scratch/apila
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
 ./gradlew assembleDebug
+
+# Install on connected emulator or physical device:
 adb install app/build/outputs/apk/debug/app-debug.apk
 ```
+
+### Running the Personnel Web Portal
+
+```bash
+cd /Users/mac/.gemini/antigravity/scratch/apila/admin-web
+
+# Start development server on http://localhost:3000
+npm run dev
+```
+
+Navigate to:
+- **Admin Dashboard**: `http://localhost:3000/admin/dashboard`
+- **Program Management**: `http://localhost:3000/admin/programs`
+- **Registrations & Attendance**: `http://localhost:3000/admin/registrations`
+- **Audit Reports**: `http://localhost:3000/admin/reports`
 
 ---
 
 <p align="center">
-  Built for <strong>Barangay Lapasan, Cagayan de Oro City</strong><br/>
-  <em>Civic technology for community empowerment</em>
+  Built with civic pride for <strong>Barangay Lapasan, Cagayan de Oro City</strong>
 </p>

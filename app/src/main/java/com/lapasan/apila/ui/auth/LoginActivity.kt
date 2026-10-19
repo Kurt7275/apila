@@ -14,7 +14,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.lapasan.apila.R
 import com.lapasan.apila.data.model.User
 import com.lapasan.apila.databinding.ActivityLoginBinding
-import com.lapasan.apila.ui.admin.AdminMainActivity
 import com.lapasan.apila.ui.resident.ResidentMainActivity
 import com.lapasan.apila.util.Resource
 
@@ -103,12 +102,6 @@ class LoginActivity : AppCompatActivity() {
             etPassword.setText("123456")
             authViewModel.switchDemoRole(asAdmin = false)
         }
-
-        binding.btnQuickAdmin.setOnClickListener {
-            etEmail.setText("admin@lapasan.gov.ph")
-            etPassword.setText("123456")
-            authViewModel.switchDemoRole(asAdmin = true)
-        }
     }
 
     private fun observeViewModel() {
@@ -133,11 +126,20 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun navigateToRoleHome(user: User) {
-        val intent = if (user.isPersonnel)
-            Intent(this, AdminMainActivity::class.java)
-        else
-            Intent(this, ResidentMainActivity::class.java)
-        startActivity(intent)
-        finishAffinity()
+        if (user.isPersonnel) {
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Barangay Personnel Portal")
+                .setMessage("Personnel operations have moved to the APILA Web Portal. Please log in from your computer to manage programs, participants, and reports.")
+                .setPositiveButton("Continue as Resident") { _, _ ->
+                    startActivity(Intent(this, ResidentMainActivity::class.java))
+                    finishAffinity()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        } else {
+            val intent = Intent(this, ResidentMainActivity::class.java)
+            startActivity(intent)
+            finishAffinity()
+        }
     }
 }

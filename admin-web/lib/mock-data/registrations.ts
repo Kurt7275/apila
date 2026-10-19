@@ -1,0 +1,173 @@
+import { Registration } from "@/types";
+
+export const mockRegistrations: Registration[] = [
+  {
+    id: "reg-001",
+    residentId: "res-demo",
+    residentName: "Jose Lapasan",
+    programId: "prog-001",
+    programTitle: "Free Medical and Dental Checkup",
+    status: "Approved",
+    registeredAt: "2026-08-10T09:30:00",
+    approvedAt: "2026-08-11T14:00:00",
+    purok: "Purok 2",
+  },
+  {
+    id: "reg-002",
+    residentId: "res-demo",
+    residentName: "Jose Lapasan",
+    programId: "prog-003",
+    programTitle: "Youth Leadership and Values Formation",
+    status: "Pending",
+    registeredAt: "2026-09-07T10:15:00",
+    purok: "Purok 2",
+  },
+  {
+    id: "reg-003",
+    residentId: "res-demo",
+    residentName: "Jose Lapasan",
+    programId: "prog-010",
+    programTitle: "Nutrition Month: Feeding Program",
+    status: "Completed",
+    registeredAt: "2026-06-25T08:00:00",
+    approvedAt: "2026-06-26T09:00:00",
+    purok: "Purok 2",
+  },
+  {
+    id: "reg-004",
+    residentId: "res-001",
+    residentName: "Maria Santos",
+    programId: "prog-001",
+    programTitle: "Free Medical and Dental Checkup",
+    status: "Approved",
+    registeredAt: "2026-08-12T10:00:00",
+    approvedAt: "2026-08-13T08:30:00",
+    purok: "Purok 1",
+  },
+  {
+    id: "reg-005",
+    residentId: "res-002",
+    residentName: "Juan Dela Cruz",
+    programId: "prog-002",
+    programTitle: "Livelihood Training: Bread and Pastry Production",
+    status: "Approved",
+    registeredAt: "2026-08-20T14:00:00",
+    approvedAt: "2026-08-21T09:00:00",
+    purok: "Purok 2",
+  },
+  {
+    id: "reg-006",
+    residentId: "res-003",
+    residentName: "Ana Reyes",
+    programId: "prog-003",
+    programTitle: "Youth Leadership and Values Formation",
+    status: "Approved",
+    registeredAt: "2026-09-01T11:30:00",
+    approvedAt: "2026-09-02T10:00:00",
+    purok: "Purok 3",
+  },
+  {
+    id: "reg-007",
+    residentId: "res-004",
+    residentName: "Pedro Garcia",
+    programId: "prog-004",
+    programTitle: "Senior Citizens Monthly Assistance Program",
+    status: "Approved",
+    registeredAt: "2026-01-15T09:00:00",
+    approvedAt: "2026-01-16T10:00:00",
+    purok: "Purok 4",
+  },
+  {
+    id: "reg-008",
+    residentId: "res-005",
+    residentName: "Rosa Fernandez",
+    programId: "prog-007",
+    programTitle: "Community Clean-Up and Tree Planting Drive",
+    status: "Pending",
+    registeredAt: "2026-09-08T15:00:00",
+    purok: "Purok 5",
+  },
+  {
+    id: "reg-009",
+    residentId: "res-006",
+    residentName: "Carlos Mendoza",
+    programId: "prog-005",
+    programTitle: "Barangay Cup Basketball Tournament",
+    status: "Approved",
+    registeredAt: "2026-09-05T13:00:00",
+    approvedAt: "2026-09-06T09:30:00",
+    purok: "Purok 1",
+  },
+  {
+    id: "reg-010",
+    residentId: "res-007",
+    residentName: "Lita Villanueva",
+    programId: "prog-006",
+    programTitle: "Barangay Scholarship Assistance Program",
+    status: "Rejected",
+    registeredAt: "2026-08-05T09:00:00",
+    notes: "Income exceeds the eligibility threshold.",
+    purok: "Purok 2",
+  },
+  {
+    id: "reg-011",
+    residentId: "res-008",
+    residentName: "Renz Cabrera",
+    programId: "prog-003",
+    programTitle: "Youth Leadership and Values Formation",
+    status: "Approved",
+    registeredAt: "2026-09-02T14:30:00",
+    approvedAt: "2026-09-03T10:00:00",
+    purok: "Purok 3",
+  },
+  {
+    id: "reg-012",
+    residentId: "res-001",
+    residentName: "Maria Santos",
+    programId: "prog-009",
+    programTitle: "Philhealth Indigent Member Registration",
+    status: "Pending",
+    registeredAt: "2026-09-16T10:30:00",
+    purok: "Purok 1",
+  },
+];
+
+// Only the demo resident's registrations
+export const demoResidentRegistrations = mockRegistrations.filter(
+  (r) => r.residentId === "res-demo"
+);
+
+// Monthly registration stats for chart
+export const monthlyRegistrationStats = [
+  { month: "Jan", registrations: 45 },
+  { month: "Feb", registrations: 32 },
+  { month: "Mar", registrations: 58 },
+  { month: "Apr", registrations: 41 },
+  { month: "May", registrations: 67 },
+  { month: "Jun", registrations: 53 },
+  { month: "Jul", registrations: 89 },
+  { month: "Aug", registrations: 76 },
+  { month: "Sep", registrations: 62 },
+];
+
+// Per-program registration count for bar chart
+export const programRegistrationStats = [
+  { program: "Medical Checkup", count: 147 },
+  { program: "Livelihood (Baking)", count: 28 },
+  { program: "Youth Leadership", count: 45 },
+  { program: "Senior Assistance", count: 312 },
+  { program: "Basketball Cup", count: 98 },
+  { program: "Scholarship", count: 18 },
+  { program: "Clean-Up Drive", count: 189 },
+];
+
+// Category distribution for pie chart
+export const categoryDistribution = [
+  { name: "Health", value: 390, color: "#1E3A5F" },
+  { name: "Senior Citizens", value: 312, color: "#2E7D32" },
+  { name: "Environment", value: 189, color: "#0288D1" },
+  { name: "Sports", value: 98, color: "#F57C00" },
+  { name: "Youth", value: 45, color: "#7B1FA2" },
+  { name: "Livelihood", value: 38, color: "#C62828" },
+  { name: "Scholarship", value: 18, color: "#00838F" },
+];

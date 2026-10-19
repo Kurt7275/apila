@@ -9,7 +9,6 @@ import androidx.appcompat.app.AppCompatActivity
 import com.lapasan.apila.data.model.User
 import com.lapasan.apila.data.repository.AuthRepository
 import com.lapasan.apila.databinding.ActivitySplashBinding
-import com.lapasan.apila.ui.admin.AdminMainActivity
 import com.lapasan.apila.ui.resident.ResidentMainActivity
 
 @SuppressLint("CustomSplashScreen")
@@ -26,11 +25,7 @@ class SplashActivity : AppCompatActivity() {
         Handler(Looper.getMainLooper()).postDelayed({
             val currentUser = authRepository.getCurrentUser()
             if (currentUser != null) {
-                if (currentUser.isPersonnel) {
-                    startActivity(Intent(this, AdminMainActivity::class.java))
-                } else {
-                    startActivity(Intent(this, ResidentMainActivity::class.java))
-                }
+                startActivity(Intent(this, ResidentMainActivity::class.java))
             } else {
                 startActivity(Intent(this, LoginActivity::class.java))
             }
