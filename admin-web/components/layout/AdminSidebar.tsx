@@ -1,101 +1,156 @@
 "use client";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
+  LayoutGrid,
   BookOpen,
   Users,
-  ClipboardList,
+  ClipboardCheck,
   BarChart3,
   Settings,
-  Building2,
+  Bell,
   LogOut,
-  Shield,
+  ShieldCheck,
+  ChevronRight,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 
-const navItems = [
-  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+const mainNavItems = [
+  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutGrid },
   { href: "/admin/programs", label: "Programs", icon: BookOpen },
   { href: "/admin/residents", label: "Residents", icon: Users },
   {
     href: "/admin/registrations",
     label: "Registrations",
-    icon: ClipboardList,
+    icon: ClipboardCheck,
     badge: 5,
   },
-  { href: "/admin/reports", label: "Reports", icon: BarChart3 },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
+];
+
+const secondaryNavItems = [
+  { href: "/admin/reports", label: "Reports & Analytics", icon: BarChart3 },
+  { href: "/admin/settings", label: "System Settings", icon: Settings },
 ];
 
 export default function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 min-h-screen flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
-      {/* Header */}
-      <div className="px-5 py-5 border-b border-sidebar-border">
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center">
-            <Building2 className="w-4 h-4 text-white" />
+    <aside className="w-64 min-h-screen bg-white border-r border-[#ECE7DF] flex flex-col justify-between p-5 selection:bg-[#F45113]/15 selection:text-[#F45113] flex-shrink-0">
+      <div className="space-y-6">
+        {/* Brand Header (Concept from reference: Clean grid icon + App name) */}
+        <div className="flex items-center gap-3 px-2 py-1">
+          <div className="w-9 h-9 rounded-xl bg-[#F45113] flex items-center justify-center shadow-md shadow-orange-500/20">
+            <LayoutGrid className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="font-bold text-white text-base leading-tight">APILA</p>
-            <p className="text-[10px] text-white/50 leading-none">Admin Portal</p>
+            <h1 className="text-base font-extrabold tracking-tight text-[#0F172A] leading-none">
+              APILA
+            </h1>
+            <p className="text-[10px] font-semibold text-[#64748B] uppercase tracking-wider mt-0.5">
+              Admin Console
+            </p>
           </div>
-        </Link>
-      </div>
+        </div>
 
-      {/* Admin Info */}
-      <div className="px-5 py-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center">
-            <Shield className="w-5 h-5 text-white/80" />
+        {/* Profile Card (Matching reference top-left user badge) */}
+        <div className="p-3 rounded-2xl bg-[#FFF9F3] border border-[#ECE7DF] flex items-center gap-3">
+          <div className="relative">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#F45113] to-[#FB923C] p-[2px]">
+              <div className="w-full h-full rounded-full bg-white flex items-center justify-center font-bold text-xs text-[#F45113]">
+                MS
+              </div>
+            </div>
+            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
           </div>
-          <div>
-            <p className="text-sm font-semibold text-white">Admin User</p>
-            <p className="text-xs text-white/50">Barangay Secretary</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold text-[#0F172A] truncate">Maria Santos</p>
+            <p className="text-[10px] text-[#64748B] truncate">Barangay Secretary</p>
           </div>
+          <ShieldCheck className="w-4 h-4 text-[#F45113] flex-shrink-0" />
+        </div>
+
+        {/* Main Navigation (Pill-shaped items matching reference) */}
+        <div className="space-y-1">
+          <p className="px-3 text-[10px] font-bold text-[#94A3B8] uppercase tracking-widest mb-2">
+            Main Menu
+          </p>
+          {mainNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
+                  isActive
+                    ? "bg-[#F45113] text-white shadow-sm shadow-orange-500/25"
+                    : "text-[#64748B] hover:text-[#0F172A] hover:bg-[#FFF9F3]"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-[#94A3B8]"}`} />
+                  <span>{item.label}</span>
+                </div>
+                {item.badge && (
+                  <span
+                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                      isActive
+                        ? "bg-white text-[#F45113]"
+                        : "bg-[#F45113]/10 text-[#F45113]"
+                    }`}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Management & Tools */}
+        <div className="space-y-1 pt-2">
+          <p className="px-3 text-[10px] font-bold text-[#94A3B8] uppercase tracking-widest mb-2">
+            Insights & Tools
+          </p>
+          {secondaryNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
+                  isActive
+                    ? "bg-[#F45113] text-white shadow-sm shadow-orange-500/25"
+                    : "text-[#64748B] hover:text-[#0F172A] hover:bg-[#FFF9F3]"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-[#94A3B8]"}`} />
+                  <span>{item.label}</span>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/");
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
-                isActive
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              )}
-            >
-              <Icon className="w-4 h-4 shrink-0" />
-              <span className="flex-1">{item.label}</span>
-              {item.badge && !isActive && (
-                <Badge className="h-5 w-5 p-0 flex items-center justify-center bg-orange-500 text-white text-[10px]">
-                  {item.badge}
-                </Badge>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
+      {/* Bottom Area: Sign Out & Status */}
+      <div className="pt-4 border-t border-[#ECE7DF] space-y-2">
+        <div className="px-3 py-2 rounded-xl bg-[#FFF9F3] border border-[#ECE7DF]/70 flex items-center justify-between text-[11px] text-[#64748B]">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            Portal Online
+          </span>
+          <span className="font-mono text-[10px]">Lapasan</span>
+        </div>
 
-      {/* Footer */}
-      <div className="px-3 py-4 border-t border-sidebar-border">
         <Link
           href="/admin/login"
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
+          className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-[#64748B] hover:text-red-600 hover:bg-red-50/60 transition-colors"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-4 h-4 text-[#94A3B8]" />
           <span>Sign Out</span>
         </Link>
       </div>
