@@ -15,6 +15,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+import { useAdminProfile } from "@/lib/context/AdminProfileContext";
+
 const mainNavItems = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutGrid },
   { href: "/admin/programs", label: "Programs", icon: BookOpen },
@@ -34,6 +36,7 @@ const secondaryNavItems = [
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const { profile } = useAdminProfile();
 
   return (
     <aside className="w-64 min-h-screen bg-white border-r border-[#ECE7DF] flex flex-col justify-between p-5 selection:bg-[#F45113]/15 selection:text-[#F45113] flex-shrink-0">
@@ -58,14 +61,14 @@ export default function AdminSidebar() {
           <div className="relative">
             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#F45113] to-[#FB923C] p-[2px]">
               <div className="w-full h-full rounded-full bg-white flex items-center justify-center font-bold text-xs text-[#F45113]">
-                MS
+                {profile.initials}
               </div>
             </div>
             <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-[#0F172A] truncate">Maria Santos</p>
-            <p className="text-[10px] text-[#64748B] truncate">Barangay Secretary</p>
+            <p className="text-xs font-bold text-[#0F172A] truncate">{profile.name}</p>
+            <p className="text-[10px] text-[#64748B] truncate">{profile.role}</p>
           </div>
           <ShieldCheck className="w-4 h-4 text-[#F45113] flex-shrink-0" />
         </div>

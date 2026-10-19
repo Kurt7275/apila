@@ -1,6 +1,7 @@
 "use client";
 
 import AdminSidebar from "@/components/layout/AdminSidebar";
+import { AdminProfileProvider } from "@/lib/context/AdminProfileContext";
 import { usePathname } from "next/navigation";
 
 export default function AdminLayout({
@@ -16,11 +17,13 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-[#FFF9F3] text-[#0F172A] selection:bg-[#F45113]/15 selection:text-[#F45113]">
-      <AdminSidebar />
-      <main className="flex-1 overflow-y-auto min-w-0">
-        {children}
-      </main>
-    </div>
+    <AdminProfileProvider>
+      <div className="flex min-h-screen bg-[#FFF9F3] text-[#0F172A] selection:bg-[#F45113]/15 selection:text-[#F45113]">
+        <AdminSidebar />
+        <main className="flex-1 overflow-y-auto min-w-0">
+          {children}
+        </main>
+      </div>
+    </AdminProfileProvider>
   );
 }

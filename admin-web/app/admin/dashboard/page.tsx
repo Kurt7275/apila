@@ -25,8 +25,10 @@ import {
 } from "lucide-react";
 import { mockPrograms } from "@/lib/mock-data/programs";
 import { mockRegistrations } from "@/lib/mock-data/registrations";
+import { useAdminProfile } from "@/lib/context/AdminProfileContext";
 
 export default function AdminDashboardPage() {
+  const { profile } = useAdminProfile();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"MONTH" | "WEEK" | "PLANNER">("MONTH");
   const [currentDate, setCurrentDate] = useState({
@@ -182,7 +184,7 @@ export default function AdminDashboardPage() {
       {/* ── Greeting Banner ── */}
       <div className="pt-1">
         <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
-          Hi Maria , <span className="text-[#64748B] font-semibold">Welcome back !</span>
+          Hi {profile.name ? profile.name.split(" ")[0] : "Admin"} , <span className="text-[#64748B] font-semibold">Welcome back !</span>
         </h1>
         <p className="text-xs sm:text-sm text-[#64748B] mt-1">
           Barangay Lapasan Administrative Dashboard · All community programs operating normally.
@@ -203,7 +205,7 @@ export default function AdminDashboardPage() {
               </span>
               <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                Active Session
+                {profile.status || "Active Session"}
               </span>
             </div>
 
@@ -212,7 +214,7 @@ export default function AdminDashboardPage() {
               <div className="relative mb-3">
                 <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-[#F45113] via-[#FB923C] to-[#FED7AA] p-[3px] shadow-md shadow-orange-500/20">
                   <div className="w-full h-full rounded-full bg-white flex items-center justify-center font-extrabold text-xl text-[#F45113]">
-                    MS
+                    {profile.initials || "AD"}
                   </div>
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#0F172A] border-2 border-white flex items-center justify-center text-white">
@@ -220,8 +222,9 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              <h2 className="text-base font-bold text-[#0F172A]">Maria Santos</h2>
-              <p className="text-xs text-[#64748B] mt-0.5">maria.santos@lapasan.gov.ph</p>
+              <h2 className="text-base font-bold text-[#0F172A]">{profile.name}</h2>
+              <p className="text-xs font-semibold text-[#F45113] mt-0.5">{profile.role}</p>
+              <p className="text-[11px] text-[#64748B] mt-0.5">{profile.email}</p>
 
               <Link
                 href="/admin/settings"
