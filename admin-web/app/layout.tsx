@@ -3,19 +3,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "APILA — Barangay Lapasan Community Programs",
-    template: "%s | APILA",
+    default: "APILA Admin Portal — Barangay Lapasan",
+    template: "%s | APILA Admin",
   },
   description:
-    "APILA is the official community program registration and participation management system for Barangay Lapasan, Cagayan de Oro City.",
-  keywords: [
-    "Barangay Lapasan",
-    "Cagayan de Oro",
-    "community programs",
-    "barangay programs",
-    "APILA",
-    "barangay services",
-  ],
+    "APILA Barangay Personnel Dashboard — authorized staff only. Manage programs, registrations, attendance, and civic reports for Barangay Lapasan.",
 };
 
 export default function RootLayout({

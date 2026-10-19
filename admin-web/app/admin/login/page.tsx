@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Building2, Eye, EyeOff, Shield, ArrowLeft } from "lucide-react";
+import { Building2, Eye, EyeOff, Shield } from "lucide-react";
 
 export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -169,14 +169,6 @@ export default function AdminLoginPage() {
             </Button>
           </div>
 
-          <div className="text-center">
-            <Link
-              href="/"
-              className="flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="w-3 h-3" /> Back to Website
-            </Link>
-          </div>
         </div>
       </div>
     </div>

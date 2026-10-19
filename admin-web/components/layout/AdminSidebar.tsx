@@ -10,7 +10,6 @@ import {
   Settings,
   Building2,
   LogOut,
-  ChevronLeft,
   Shield,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -91,14 +90,7 @@ export default function AdminSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-4 border-t border-sidebar-border space-y-1">
-        <Link
-          href="/"
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          <span>Back to Website</span>
-        </Link>
+      <div className="px-3 py-4 border-t border-sidebar-border">
         <Link
           href="/admin/login"
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"

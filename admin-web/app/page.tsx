@@ -1,5 +1,5 @@
-import ResidentLoginPage from "./resident/login/page";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return <ResidentLoginPage />;
+  redirect("/admin/login");
 }
