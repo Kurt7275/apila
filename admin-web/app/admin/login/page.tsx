@@ -60,20 +60,22 @@ export default function AdminLoginPage() {
             >
               <defs>
                 <linearGradient id="deskGrad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#38BDF8" />
-                  <stop offset="100%" stopColor="#0284C7" />
+                  <stop offset="0%" stopColor="#FB923C" />
+                  <stop offset="55%" stopColor="#F45113" />
+                  <stop offset="100%" stopColor="#C2410C" />
                 </linearGradient>
                 <linearGradient id="panelGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#0284C7" stopOpacity="0.85" />
-                  <stop offset="100%" stopColor="#0369A1" />
+                  <stop offset="0%" stopColor="#EA580C" stopOpacity="0.9" />
+                  <stop offset="100%" stopColor="#9A3412" />
                 </linearGradient>
                 <linearGradient id="warmSun" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#F45113" stopOpacity="0.12" />
+                  <stop offset="0%" stopColor="#F45113" stopOpacity="0.18" />
                   <stop offset="100%" stopColor="#F45113" stopOpacity="0.02" />
                 </linearGradient>
                 <linearGradient id="leafGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#38BDF8" />
-                  <stop offset="100%" stopColor="#0284C7" />
+                  <stop offset="0%" stopColor="#FDBA74" />
+                  <stop offset="50%" stopColor="#F45113" />
+                  <stop offset="100%" stopColor="#9A3412" />
                 </linearGradient>
               </defs>
 
@@ -81,15 +83,15 @@ export default function AdminLoginPage() {
               <circle cx="300" cy="225" r="190" fill="url(#warmSun)" />
 
               {/* Floor Base Guidelines */}
-              <line x1="20" y1="365" x2="580" y2="365" stroke="#0284C7" strokeWidth="2.5" strokeLinecap="round" />
-              <line x1="80" y1="375" x2="260" y2="375" stroke="#38BDF8" strokeWidth="2" strokeDasharray="6 6" strokeLinecap="round" />
-              <line x1="340" y1="375" x2="480" y2="375" stroke="#38BDF8" strokeWidth="2" strokeDasharray="8 6" strokeLinecap="round" />
+              <line x1="20" y1="365" x2="580" y2="365" stroke="#F45113" strokeWidth="2.5" strokeLinecap="round" />
+              <line x1="80" y1="375" x2="260" y2="375" stroke="#FB923C" strokeWidth="2" strokeDasharray="6 6" strokeLinecap="round" />
+              <line x1="340" y1="375" x2="480" y2="375" stroke="#FB923C" strokeWidth="2" strokeDasharray="8 6" strokeLinecap="round" />
 
               {/* Background Spark Accents */}
-              <g stroke="#38BDF8" strokeWidth="1.5" strokeLinecap="round" opacity="0.75">
-                <circle cx="215" cy="150" r="1.5" fill="#38BDF8" />
+              <g stroke="#FB923C" strokeWidth="1.5" strokeLinecap="round" opacity="0.8">
+                <circle cx="215" cy="150" r="1.5" fill="#F45113" />
                 <path d="M215 140v-4M215 160v4M205 150h-4M225 150h4" />
-                <circle cx="435" cy="255" r="1.5" fill="#38BDF8" />
+                <circle cx="435" cy="255" r="1.5" fill="#F45113" />
                 <path d="M435 247v-3M435 263v3M427 255h-3M443 255h3" />
               </g>
 
@@ -98,7 +100,7 @@ export default function AdminLoginPage() {
                 {/* Hair back */}
                 <path d="M216 195c-15 0-25 15-22 45 6 1 18 1 24-2 3-15 4-30-2-43z" fill="#0F172A" />
                 {/* Body/Blouse */}
-                <path d="M205 240c-18 6-30 25-32 50h72c-2-25-14-44-32-50z" fill="#F45113" opacity="0.9" />
+                <path d="M205 240c-18 6-30 25-32 50h72c-2-25-14-44-32-50z" fill="#0F172A" />
                 {/* Neck */}
                 <rect x="220" y="215" width="12" height="15" rx="3" fill="#FED7AA" />
                 {/* Head */}
@@ -118,7 +120,7 @@ export default function AdminLoginPage() {
                   fill="url(#deskGrad)"
                 />
                 {/* Desk Counter Top Trim */}
-                <rect x="125" y="235" width="264" height="7" rx="3" fill="#E0F2FE" />
+                <rect x="125" y="235" width="264" height="7" rx="3" fill="#FFF7ED" stroke="#FED7AA" strokeWidth="1" />
                 {/* Subtle Modern Geometric Facet on Desk */}
                 <path
                   d="M130 240 L384 300 L384 365 L130 365 Z"
@@ -126,25 +128,26 @@ export default function AdminLoginPage() {
                 />
 
                 {/* Laptop on desk */}
-                <rect x="175" y="218" width="55" height="17" rx="3" fill="#38BDF8" />
-                <rect x="170" y="233" width="65" height="4" rx="2" fill="#E2E8F0" />
+                <rect x="175" y="218" width="55" height="17" rx="3" fill="#0F172A" />
+                <rect x="178" y="221" width="49" height="11" rx="1.5" fill="#FED7AA" />
+                <rect x="170" y="233" width="65" height="4" rx="2" fill="#ECE7DF" />
               </g>
 
               {/* Potted Leaf Plant on Desk Counter */}
               <g id="desk-plant">
-                <rect x="305" y="210" width="22" height="12" rx="3" fill="#F45113" />
-                <path d="M303 207h26v4h-26z" fill="#EA580C" rx="1.5" />
-                <path d="M316 207v-12" stroke="#0284C7" strokeWidth="2" strokeLinecap="round" />
-                <circle cx="316" cy="190" r="4" fill="#38BDF8" />
-                <circle cx="309" cy="197" r="3.5" fill="#38BDF8" />
-                <circle cx="323" cy="197" r="3.5" fill="#38BDF8" />
+                <rect x="305" y="210" width="22" height="12" rx="3" fill="#0F172A" />
+                <path d="M303 207h26v4h-26z" fill="#334155" rx="1.5" />
+                <path d="M316 207v-12" stroke="#F45113" strokeWidth="2" strokeLinecap="round" />
+                <circle cx="316" cy="190" r="4" fill="#F45113" />
+                <circle cx="309" cy="197" r="3.5" fill="#FB923C" />
+                <circle cx="323" cy="197" r="3.5" fill="#F97316" />
               </g>
 
               {/* Tall Floor Plant beside Desk */}
               <g id="floor-plant">
                 {/* Planter Pot */}
-                <path d="M375 320 L370 365 L415 365 L410 320 Z" fill="#FDBA74" />
-                <ellipse cx="392" cy="320" rx="20" ry="4" fill="#FB923C" />
+                <path d="M375 320 L370 365 L415 365 L410 320 Z" fill="#0F172A" />
+                <ellipse cx="392" cy="320" rx="20" ry="4" fill="#334155" />
                 {/* Big Organic Sculptural Leafy Plant */}
                 <path
                   d="M392 320 C375 280 340 240 365 190 C385 150 425 180 435 220 C445 260 415 300 392 320 Z"
@@ -152,19 +155,19 @@ export default function AdminLoginPage() {
                 />
                 <path
                   d="M392 320 C382 270 380 230 400 185"
-                  stroke="#E0F2FE"
+                  stroke="#FFF7ED"
                   strokeWidth="2.5"
                   strokeLinecap="round"
-                  opacity="0.6"
+                  opacity="0.75"
                 />
               </g>
 
               {/* Citizen / Resident at the Counter */}
               <g id="citizen">
                 {/* Briefcase/Portfolio bag */}
-                <rect x="68" y="280" width="45" height="34" rx="3" fill="#FDA4AF" />
-                <path d="M83 280v-8a4 4 0 0 1 4-4h7a4 4 0 0 1 4 4v8" stroke="#F43F5E" strokeWidth="2.5" fill="none" />
-                <line x1="68" y1="298" x2="113" y2="298" stroke="#F43F5E" strokeWidth="1.5" />
+                <rect x="68" y="280" width="45" height="34" rx="3" fill="#EA580C" />
+                <path d="M83 280v-8a4 4 0 0 1 4-4h7a4 4 0 0 1 4 4v8" stroke="#9A3412" strokeWidth="2.5" fill="none" />
+                <line x1="68" y1="298" x2="113" y2="298" stroke="#9A3412" strokeWidth="1.5" />
 
                 {/* Left arm holding bag */}
                 <path d="M102 215 L88 285" stroke="#FBBF24" strokeWidth="14" strokeLinecap="round" />
