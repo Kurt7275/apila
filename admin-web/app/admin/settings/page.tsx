@@ -338,20 +338,10 @@ export default function AdminSettingsPage() {
                 </div>
               </div>
 
-              {/* Quick Channel Badges */}
-              <div className="pt-3 border-t border-[#ECE7DF]/70 flex items-center justify-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-[#FFF9F3] border border-[#ECE7DF] flex items-center justify-center text-[#F45113]">
-                  <Phone className="w-4 h-4" />
-                </div>
-                <div className="w-9 h-9 rounded-full bg-[#FFF9F3] border border-[#ECE7DF] flex items-center justify-center text-[#0F172A]">
-                  <Mail className="w-4 h-4" />
-                </div>
-                <div className="w-9 h-9 rounded-full bg-[#FFF9F3] border border-[#ECE7DF] flex items-center justify-center text-[#0F172A]">
-                  <Radio className="w-4 h-4" />
-                </div>
-                <div className="w-9 h-9 rounded-full bg-[#FFF9F3] border border-[#ECE7DF] flex items-center justify-center text-[#0F172A]">
-                  <Share2 className="w-4 h-4" />
-                </div>
+              {/* Authorized Personnel Badge */}
+              <div className="pt-3 border-t border-[#ECE7DF]/70 flex items-center justify-center gap-2 text-[11px] text-[#64748B] font-semibold">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>Authorized Administrative Account</span>
               </div>
             </div>
 
