@@ -19,9 +19,11 @@
             android:paddingStart="20dp"
             android:paddingTop="20dp"
             android:paddingEnd="20dp"
-            android:paddingBottom="36dp">
+            android:paddingBottom="100dp">
 
-            <!-- ── GREETING & RESIDENT PUROK HEADER ── -->
+            <!-- ══════════════════════════════════════════
+                 TOP HEADER (Reference Design Concept)
+                 ══════════════════════════════════════════ -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -40,7 +42,7 @@
                         android:layout_height="wrap_content"
                         android:text="Maayong Adlaw, Maria!"
                         android:textColor="#0F172A"
-                        android:textSize="22sp"
+                        android:textSize="24sp"
                         android:textStyle="bold"
                         android:letterSpacing="-0.02" />
 
@@ -58,7 +60,7 @@
                 <FrameLayout
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    android:background="@drawable/bg_profile_avatar_circle">
+                    android:background="@drawable/bg_circular_back_button">
 
                     <ImageView
                         android:layout_width="24dp"
@@ -70,117 +72,16 @@
                 </FrameLayout>
             </LinearLayout>
 
-            <!-- ── HERO CIVIC SPOTLIGHT BANNER ── -->
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:background="@drawable/bg_home_hero_gradient"
-                android:padding="20dp">
-
-                <!-- Subtle engraved pin watermark in background -->
-                <ImageView
-                    android:layout_width="120dp"
-                    android:layout_height="120dp"
-                    android:layout_gravity="end|bottom"
-                    android:layout_marginEnd="-20dp"
-                    android:layout_marginBottom="-20dp"
-                    android:alpha="0.10"
-                    android:src="@drawable/ic_apila_pin"
-                    android:contentDescription="Watermark" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <!-- Top Pill Tag -->
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/bg_hero_inner_pill"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="10dp"
-                        android:paddingTop="4dp"
-                        android:paddingEnd="12dp"
-                        android:paddingBottom="4dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="COMMUNITY SPOTLIGHT"
-                            android:textColor="@color/white"
-                            android:textSize="10.5sp"
-                            android:textStyle="bold"
-                            android:letterSpacing="0.04" />
-                    </LinearLayout>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:text="Discover &amp; Join Barangay Initiatives"
-                        android:textColor="@color/white"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="-0.01" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:lineSpacingExtra="2dp"
-                        android:text="Secure your participation slots for community health missions, youth leagues, and livelihood seminars."
-                        android:textColor="#FFE5D6"
-                        android:textSize="12.5sp" />
-
-                    <!-- Action Buttons Row -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="18dp"
-                        android:orientation="horizontal">
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnBannerBrowse"
-                            android:layout_width="wrap_content"
-                            android:layout_height="44dp"
-                            android:backgroundTint="@color/white"
-                            android:text="Explore Programs"
-                            android:textColor="#C04A0D"
-                            android:textSize="12.5sp"
-                            android:textStyle="bold"
-                            app:cornerRadius="12dp"
-                            app:elevation="0dp"
-                            app:rippleColor="#20F45113" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnBannerMyPrograms"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                            android:layout_width="wrap_content"
-                            android:layout_height="44dp"
-                            android:layout_marginStart="10dp"
-                            android:text="My Passes"
-                            android:textColor="@color/white"
-                            android:textSize="12.5sp"
-                            android:textStyle="bold"
-                            app:cornerRadius="12dp"
-                            app:strokeColor="#80FFFFFF"
-                            app:strokeWidth="1.2dp" />
-                    </LinearLayout>
-
-                </LinearLayout>
-            </FrameLayout>
-
-            <!-- ── QUICK PULSE STATS / SHORTCUTS (2 Cards) ── -->
+            <!-- ══════════════════════════════════════════
+                 BENTO STAT TILES (From Reference Design)
+                 ══════════════════════════════════════════ -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="18dp"
                 android:orientation="horizontal">
 
-                <!-- Stat 1: Registered Passes -->
+                <!-- Stat 1: Registered Passes (Active Passes) -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardActiveCount"
                     android:layout_width="0dp"
@@ -189,7 +90,7 @@
                     android:layout_weight="1"
                     android:clickable="true"
                     android:focusable="true"
-                    app:cardCornerRadius="16dp"
+                    app:cardCornerRadius="24dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="1.2dp"
                     app:strokeColor="#ECE7DF"
@@ -199,7 +100,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="14dp">
+                        android:padding="16dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -211,36 +112,28 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="PASSES"
+                                android:text="MY PASSES"
                                 android:textColor="#94A3B8"
                                 android:textSize="10.5sp"
                                 android:textStyle="bold"
-                                android:letterSpacing="0.04" />
+                                android:letterSpacing="0.06" />
 
-                            <FrameLayout
-                                android:layout_width="28dp"
-                                android:layout_height="28dp"
-                                android:background="@drawable/bg_icon_circle_navy"
-                                android:backgroundTint="#FFF1E3">
-
-                                <ImageView
-                                    android:layout_width="15dp"
-                                    android:layout_height="15dp"
-                                    android:layout_gravity="center"
-                                    android:src="@drawable/ic_my_programs"
-                                    android:contentDescription="Passes"
-                                    app:tint="@color/brand_orange" />
-                            </FrameLayout>
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:src="@drawable/ic_arrow_forward"
+                                app:tint="#94A3B8"
+                                android:contentDescription="Go" />
                         </LinearLayout>
 
                         <TextView
                             android:id="@+id/tvActiveRegistrationsCount"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
+                            android:layout_marginTop="10dp"
                             android:text="1"
                             android:textColor="#0F172A"
-                            android:textSize="24sp"
+                            android:textSize="28sp"
                             android:textStyle="bold"
                             android:letterSpacing="-0.02" />
 
@@ -264,7 +157,7 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Stat 2: Available Programs -->
+                <!-- Stat 2: Open Community Programs -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardAvailableCount"
                     android:layout_width="0dp"
@@ -273,7 +166,7 @@
                     android:layout_weight="1"
                     android:clickable="true"
                     android:focusable="true"
-                    app:cardCornerRadius="16dp"
+                    app:cardCornerRadius="24dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="1.2dp"
                     app:strokeColor="#ECE7DF"
@@ -283,7 +176,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="14dp">
+                        android:padding="16dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -295,36 +188,28 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="ENROLLMENT"
+                                android:text="PROGRAMS"
                                 android:textColor="#94A3B8"
                                 android:textSize="10.5sp"
                                 android:textStyle="bold"
-                                android:letterSpacing="0.04" />
+                                android:letterSpacing="0.06" />
 
-                            <FrameLayout
-                                android:layout_width="28dp"
-                                android:layout_height="28dp"
-                                android:background="@drawable/bg_icon_circle_navy"
-                                android:backgroundTint="#EFF6FF">
-
-                                <ImageView
-                                    android:layout_width="15dp"
-                                    android:layout_height="15dp"
-                                    android:layout_gravity="center"
-                                    android:src="@drawable/ic_programs"
-                                    android:contentDescription="Programs"
-                                    app:tint="#2563EB" />
-                            </FrameLayout>
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:src="@drawable/ic_arrow_forward"
+                                app:tint="#94A3B8"
+                                android:contentDescription="Go" />
                         </LinearLayout>
 
                         <TextView
                             android:id="@+id/tvAvailableProgramsCount"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
+                            android:layout_marginTop="10dp"
                             android:text="5"
                             android:textColor="#0F172A"
-                            android:textSize="24sp"
+                            android:textSize="28sp"
                             android:textStyle="bold"
                             android:letterSpacing="-0.02" />
 
@@ -332,7 +217,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="Open Programs"
+                            android:text="Open Initiatives"
                             android:textColor="#64748B"
                             android:textSize="12sp"
                             android:textStyle="bold" />
@@ -349,7 +234,315 @@
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
-            <!-- ── SECTION: UPCOMING INITIATIVES ── -->
+            <!-- ══════════════════════════════════════════
+                 CATEGORY PILL CHIPS (Reference Tag Section)
+                 ══════════════════════════════════════════ -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:text="Civic Sectors"
+                android:textColor="#0F172A"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:overScrollMode="never"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:background="@drawable/bg_pill_button_orange"
+                        android:gravity="center"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="All Programs"
+                        android:textColor="@color/white"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_pill_button_outline"
+                        android:gravity="center"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="Health &amp; Wellness"
+                        android:textColor="#0F172A"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_pill_button_outline"
+                        android:gravity="center"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="Livelihood &amp; TESDA"
+                        android:textColor="#0F172A"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_pill_button_outline"
+                        android:gravity="center"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="DRRM / Calamity"
+                        android:textColor="#0F172A"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_pill_button_outline"
+                        android:gravity="center"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="Youth &amp; Sports"
+                        android:textColor="#0F172A"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </HorizontalScrollView>
+
+            <!-- ══════════════════════════════════════════
+                 NEXT PROGRAM SCHEDULE CARD WITH COUNTDOWN
+                 (Direct Concept from Reference Screen 1)
+                 ══════════════════════════════════════════ -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                app:cardCornerRadius="26dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="1.2dp"
+                app:strokeColor="#ECE7DF"
+                app:cardBackgroundColor="#FFF1E3">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="UPCOMING SCHEDULE"
+                            android:textColor="@color/brand_orange"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.06" />
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_arrow_forward"
+                            app:tint="@color/brand_orange"
+                            android:contentDescription="Next" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Community Clean-Up Drive: Coastal Area"
+                        android:textColor="#0F172A"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="-0.01" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:text="Barangay Lapasan Multi-Purpose Complex • 7:00 AM"
+                        android:textColor="#64748B"
+                        android:textSize="12sp" />
+
+                    <!-- 4 Clean White Countdown Boxes (Direct from Reference) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:gravity="center"
+                        android:orientation="horizontal">
+
+                        <!-- Box 1: Days -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="62dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_countdown_box"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="03"
+                                android:textColor="#0F172A"
+                                android:textSize="18sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Days"
+                                android:textColor="#94A3B8"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <!-- Box 2: Hours -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="62dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_countdown_box"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="15"
+                                android:textColor="#0F172A"
+                                android:textSize="18sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Hrs"
+                                android:textColor="#94A3B8"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <!-- Box 3: Minutes -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="62dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_countdown_box"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="42"
+                                android:textColor="#0F172A"
+                                android:textSize="18sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Min"
+                                android:textColor="#94A3B8"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <!-- Box 4: Seconds -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="62dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_countdown_box"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="58"
+                                android:textColor="@color/brand_orange"
+                                android:textSize="18sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Sec"
+                                android:textColor="#94A3B8"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Quick buttons inside card -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnBannerBrowse"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_pill_button_orange"
+                            android:text="Explore Programs"
+                            android:textColor="@color/white"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            app:backgroundTint="@null"
+                            app:elevation="0dp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnBannerMyPrograms"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_marginStart="10dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_pill_button_outline"
+                            android:text="My Passes"
+                            android:textColor="#0F172A"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            app:backgroundTint="@null"
+                            app:elevation="0dp" />
+                    </LinearLayout>
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ══════════════════════════════════════════
+                 UPCOMING INITIATIVES LIST
+                 ══════════════════════════════════════════ -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -371,36 +564,27 @@
                     android:id="@+id/tvViewAllPrograms"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:paddingStart="8dp"
-                    android:paddingTop="4dp"
-                    android:paddingEnd="4dp"
-                    android:paddingBottom="4dp"
+                    android:padding="6dp"
                     android:text="See All"
                     android:textColor="@color/brand_orange"
                     android:textSize="13sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Participate and register for scheduled barangay events"
-                android:textColor="#64748B"
-                android:textSize="12sp" />
-
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvFeaturedPrograms"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="10dp"
                 android:nestedScrollingEnabled="false" />
 
-            <!-- ── SECTION: OFFICIAL ANNOUNCEMENTS ── -->
+            <!-- ══════════════════════════════════════════
+                 OFFICIAL ADVISORIES LIST
+                 ══════════════════════════════════════════ -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="22dp"
+                android:layout_marginTop="24dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -418,29 +602,18 @@
                     android:id="@+id/tvViewAllAnnouncements"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:paddingStart="8dp"
-                    android:paddingTop="4dp"
-                    android:paddingEnd="4dp"
-                    android:paddingBottom="4dp"
+                    android:padding="6dp"
                     android:text="View All"
                     android:textColor="@color/brand_orange"
                     android:textSize="13sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Barangay notices, health alerts, and public advisories"
-                android:textColor="#64748B"
-                android:textSize="12sp" />
-
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvHomeAnnouncements"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="10dp"
                 android:nestedScrollingEnabled="false" />
 
         </LinearLayout>

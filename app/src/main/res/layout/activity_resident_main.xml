@@ -101,20 +101,22 @@
         android:id="@+id/fragmentContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginBottom="68dp"
         app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
-    <!-- Modern Elevated Bottom Navigation Bar -->
+    <!-- Floating Dark Navy Pill Bottom Navigation Bar (Matching Reference Concept) -->
     <LinearLayout
         android:id="@+id/bottomNavContainer"
         android:layout_width="match_parent"
-        android:layout_height="68dp"
+        android:layout_height="66dp"
         android:layout_gravity="bottom"
-        android:background="@color/white"
-        android:elevation="12dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_floating_bottom_nav"
+        android:elevation="14dp"
         android:orientation="horizontal"
-        android:paddingTop="6dp"
-        android:paddingBottom="6dp">
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp">
 
         <!-- Tab 1: Home -->
         <LinearLayout
