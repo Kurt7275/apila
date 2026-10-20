@@ -7,6 +7,7 @@ import {
   BookOpen,
   Users,
   ClipboardCheck,
+  UserCheck,
   BarChart3,
   Settings,
   Bell,
@@ -20,18 +21,20 @@ import { useAdminProfile } from "@/lib/context/AdminProfileContext";
 const mainNavItems = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutGrid },
   { href: "/admin/programs", label: "Programs", icon: BookOpen },
-  { href: "/admin/residents", label: "Residents", icon: Users },
   {
     href: "/admin/registrations",
     label: "Registrations",
     icon: ClipboardCheck,
     badge: 5,
   },
+  { href: "/admin/attendance", label: "Attendance", icon: UserCheck },
+  { href: "/admin/announcements", label: "Announcements", icon: Bell },
+  { href: "/admin/residents", label: "Residents", icon: Users },
 ];
 
 const secondaryNavItems = [
   { href: "/admin/reports", label: "Reports & Analytics", icon: BarChart3 },
-  { href: "/admin/settings", label: "System Settings", icon: Settings },
+  { href: "/admin/settings", label: "Account & Settings", icon: Settings },
 ];
 
 export default function AdminSidebar() {

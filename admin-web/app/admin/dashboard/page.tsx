@@ -22,6 +22,7 @@ import {
   TrendingUp,
   UserCheck,
   Building,
+  Bell,
 } from "lucide-react";
 import { mockPrograms } from "@/lib/mock-data/programs";
 import { mockRegistrations } from "@/lib/mock-data/registrations";
@@ -268,7 +269,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-extrabold text-[#0F172A]">Community Notices</h3>
               <Link
-                href="/admin/programs"
+                href="/admin/announcements"
                 className="text-[11px] font-bold text-[#F45113] hover:underline uppercase tracking-wider"
               >
                 SEE ALL
@@ -277,7 +278,11 @@ export default function AdminDashboardPage() {
 
             <div className="space-y-3.5 pt-1">
               {communityNotices.map((notice) => (
-                <div key={notice.id} className="group cursor-pointer">
+                <Link
+                  key={notice.id}
+                  href="/admin/announcements"
+                  className="block group cursor-pointer"
+                >
                   <div className="flex items-start gap-2.5">
                     <span className="w-2 h-2 rounded-full bg-[#F45113] mt-1.5 flex-shrink-0 group-hover:scale-125 transition-transform" />
                     <div className="min-w-0 flex-1">
@@ -289,7 +294,7 @@ export default function AdminDashboardPage() {
                       </p>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -303,35 +308,45 @@ export default function AdminDashboardPage() {
           <div className="p-6 rounded-3xl bg-white border border-[#ECE7DF] shadow-sm space-y-4">
             <h3 className="text-sm font-extrabold text-[#0F172A]">Quick Operations</h3>
             
-            {/* 3 Pill Action Buttons */}
-            <div className="grid grid-cols-3 gap-2">
+            {/* 4 Pill Action Buttons */}
+            <div className="grid grid-cols-4 gap-2">
               <Link
                 href="/admin/programs"
-                className="py-2.5 px-2 rounded-2xl bg-[#FFF9F3] hover:bg-[#F45113] border border-[#ECE7DF] hover:border-[#F45113] group flex flex-col items-center justify-center text-center transition-all"
+                className="py-2.5 px-1.5 rounded-2xl bg-[#FFF9F3] hover:bg-[#F45113] border border-[#ECE7DF] hover:border-[#F45113] group flex flex-col items-center justify-center text-center transition-all"
               >
                 <BookOpen className="w-4 h-4 text-[#F45113] group-hover:text-white mb-1 transition-colors" />
-                <span className="text-[11px] font-bold text-[#0F172A] group-hover:text-white transition-colors">
+                <span className="text-[10px] font-bold text-[#0F172A] group-hover:text-white transition-colors">
                   Programs
                 </span>
               </Link>
 
               <Link
                 href="/admin/registrations"
-                className="py-2.5 px-2 rounded-2xl bg-[#FFF9F3] hover:bg-[#F45113] border border-[#ECE7DF] hover:border-[#F45113] group flex flex-col items-center justify-center text-center transition-all"
+                className="py-2.5 px-1.5 rounded-2xl bg-[#FFF9F3] hover:bg-[#F45113] border border-[#ECE7DF] hover:border-[#F45113] group flex flex-col items-center justify-center text-center transition-all"
               >
                 <UserCheck className="w-4 h-4 text-[#F45113] group-hover:text-white mb-1 transition-colors" />
-                <span className="text-[11px] font-bold text-[#0F172A] group-hover:text-white transition-colors">
+                <span className="text-[10px] font-bold text-[#0F172A] group-hover:text-white transition-colors">
                   Approvals
                 </span>
               </Link>
 
               <Link
-                href="/admin/reports"
-                className="py-2.5 px-2 rounded-2xl bg-[#FFF9F3] hover:bg-[#F45113] border border-[#ECE7DF] hover:border-[#F45113] group flex flex-col items-center justify-center text-center transition-all"
+                href="/admin/attendance"
+                className="py-2.5 px-1.5 rounded-2xl bg-[#FFF9F3] hover:bg-[#F45113] border border-[#ECE7DF] hover:border-[#F45113] group flex flex-col items-center justify-center text-center transition-all"
               >
-                <FileText className="w-4 h-4 text-[#F45113] group-hover:text-white mb-1 transition-colors" />
-                <span className="text-[11px] font-bold text-[#0F172A] group-hover:text-white transition-colors">
-                  Reports
+                <Users className="w-4 h-4 text-[#F45113] group-hover:text-white mb-1 transition-colors" />
+                <span className="text-[10px] font-bold text-[#0F172A] group-hover:text-white transition-colors">
+                  Attendance
+                </span>
+              </Link>
+
+              <Link
+                href="/admin/announcements"
+                className="py-2.5 px-1.5 rounded-2xl bg-[#FFF9F3] hover:bg-[#F45113] border border-[#ECE7DF] hover:border-[#F45113] group flex flex-col items-center justify-center text-center transition-all"
+              >
+                <Bell className="w-4 h-4 text-[#F45113] group-hover:text-white mb-1 transition-colors" />
+                <span className="text-[10px] font-bold text-[#0F172A] group-hover:text-white transition-colors">
+                  Advisory
                 </span>
               </Link>
             </div>

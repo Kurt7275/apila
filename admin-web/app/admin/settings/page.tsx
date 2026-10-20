@@ -20,12 +20,17 @@ import {
   Clock,
   Eye,
   EyeOff,
+  History,
+  Download,
+  Search,
 } from "lucide-react";
 
 export default function AdminSettingsPage() {
   const { profile, updateProfile, resetProfile } = useAdminProfile();
 
-  const [activeTab, setActiveTab] = useState<"PROFILE" | "BARANGAY" | "SECURITY">("PROFILE");
+  const [activeTab, setActiveTab] = useState<"PROFILE" | "BARANGAY" | "SECURITY" | "AUDIT">("PROFILE");
+  const [auditSearch, setAuditSearch] = useState("");
+  const [auditCategory, setAuditCategory] = useState("ALL");
 
   // Form State initialized from context
   const [formData, setFormData] = useState<AdminProfile>(profile);
@@ -86,6 +91,7 @@ export default function AdminSettingsPage() {
               { id: "PROFILE", label: "Admin Profile", icon: User },
               { id: "BARANGAY", label: "Barangay Office", icon: Building2 },
               { id: "SECURITY", label: "Security", icon: Lock },
+              { id: "AUDIT", label: "Audit Logs", icon: History },
             ] as const
           ).map((t) => {
             const Icon = t.icon;
@@ -468,6 +474,200 @@ export default function AdminSettingsPage() {
             >
               Update Credentials
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Tab: Activity Audit Logs ── */}
+      {activeTab === "AUDIT" && (
+        <div className="bg-white rounded-3xl border border-[#ECE7DF] shadow-sm overflow-hidden space-y-0">
+          <div className="p-6 sm:p-8 border-b border-[#ECE7DF] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-base font-extrabold text-[#0F172A]">
+                Administrative Activity Audit Logs
+              </h2>
+              <p className="text-xs text-[#64748B] mt-0.5">
+                Immutable record of administrative actions, program updates, and resident record verifications.
+              </p>
+            </div>
+
+            <button
+              onClick={() => {
+                const header = "Log ID,Timestamp,Officer,Role,Action,Category,IP Address,Status\n";
+                const rows = [
+                  'LOG-9102,2026-10-20T14:45:00,Hon. Maria Santos,Secretary,"Approved resident registration for Juan Dela Cruz",Registration,192.168.1.14,Success',
+                  'LOG-9101,2026-10-18T08:30:00,Hon. Maria Santos,Secretary,"Broadcasted Urgent Advisory: Typhoon Preparedness",Advisory,192.168.1.14,Success',
+                  'LOG-9100,2026-10-15T11:20:00,Ricardo Gomez,Program Officer,"Marked attendance for 42 participants",Attendance,192.168.1.28,Success',
+                  'LOG-9099,2026-10-12T09:15:00,Hon. Maria Santos,Secretary,"Published new program: DRRM Training",Program,192.168.1.14,Success',
+                  'LOG-9098,2026-10-10T16:00:00,Hon. Maria Santos,Secretary,"Updated Barangay Hall emergency contact hotline",Security,192.168.1.14,Success',
+                  'LOG-9097,2026-10-08T13:40:00,Admin Lapasan,Administrator,"Exported demographic registration summary by Purok",Reports,192.168.1.10,Success',
+                ].join("\n");
+                const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8;" });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.setAttribute("download", `APILA_Audit_Logs_${new Date().toISOString().slice(0, 10)}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-[#ECE7DF] hover:border-[#F45113]/50 text-xs font-bold text-[#0F172A] rounded-2xl shadow-sm transition-all cursor-pointer self-start sm:self-auto"
+            >
+              <Download className="w-3.5 h-3.5 text-[#F45113]" />
+              <span>Export Audit Trail (CSV)</span>
+            </button>
+          </div>
+
+          {/* Filter Bar */}
+          <div className="p-4 bg-[#FFF9F3]/50 border-b border-[#ECE7DF] flex flex-wrap items-center justify-between gap-3">
+            <div className="relative min-w-[240px] flex-1 max-w-sm">
+              <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search audit trail by action or officer..."
+                value={auditSearch}
+                onChange={(e) => setAuditSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 rounded-full border border-[#ECE7DF] bg-white text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113]"
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              {(["ALL", "Registration", "Program", "Attendance", "Advisory", "Security"] as const).map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setAuditCategory(cat)}
+                  className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
+                    auditCategory === cat
+                      ? "bg-[#0F172A] text-white shadow-xs"
+                      : "text-[#64748B] hover:text-[#0F172A] bg-white border border-[#ECE7DF]"
+                  }`}
+                >
+                  {cat === "ALL" ? "All Logs" : cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Audit Trail Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-[#FFF9F3]/80 border-b border-[#ECE7DF] text-[10px] font-extrabold text-[#64748B] uppercase tracking-wider">
+                  <th className="py-3 px-5">Timestamp</th>
+                  <th className="py-3 px-4">Authorized Officer</th>
+                  <th className="py-3 px-4">Action Taken</th>
+                  <th className="py-3 px-4">Category</th>
+                  <th className="py-3 px-4">Terminal / Station</th>
+                  <th className="py-3 px-5 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#ECE7DF] text-xs">
+                {[
+                  {
+                    id: "LOG-9102",
+                    timestamp: "2026-10-20T14:45:00",
+                    adminUser: profile.name,
+                    role: profile.role,
+                    action: "Approved resident registration for Juan Dela Cruz (Free Medical and Dental Checkup)",
+                    category: "Registration",
+                    ipAddress: "192.168.1.14 (Admin Terminal 01)",
+                    status: "Success",
+                  },
+                  {
+                    id: "LOG-9101",
+                    timestamp: "2026-10-18T08:30:00",
+                    adminUser: profile.name,
+                    role: profile.role,
+                    action: "Broadcasted Urgent Advisory: Typhoon Preparedness Advisory to 4,820 resident devices",
+                    category: "Advisory",
+                    ipAddress: "192.168.1.14 (Admin Terminal 01)",
+                    status: "Success",
+                  },
+                  {
+                    id: "LOG-9100",
+                    timestamp: "2026-10-15T11:20:00",
+                    adminUser: "Ricardo Gomez",
+                    role: "Program Officer",
+                    action: "Marked attendance for 42 participants in Livelihood Training: Bread & Pastry",
+                    category: "Attendance",
+                    ipAddress: "192.168.1.28 (Hall Laptop 02)",
+                    status: "Success",
+                  },
+                  {
+                    id: "LOG-9099",
+                    timestamp: "2026-10-12T09:15:00",
+                    adminUser: profile.name,
+                    role: profile.role,
+                    action: "Published new community program: Disaster Risk Reduction & Management Training",
+                    category: "Program",
+                    ipAddress: "192.168.1.14 (Admin Terminal 01)",
+                    status: "Success",
+                  },
+                  {
+                    id: "LOG-9098",
+                    timestamp: "2026-10-10T16:00:00",
+                    adminUser: profile.name,
+                    role: profile.role,
+                    action: "Updated Barangay Hall emergency contact hotline and office hours",
+                    category: "Security",
+                    ipAddress: "192.168.1.14 (Admin Terminal 01)",
+                    status: "Success",
+                  },
+                  {
+                    id: "LOG-9097",
+                    timestamp: "2026-10-08T13:40:00",
+                    adminUser: "Admin Lapasan",
+                    role: "Administrator",
+                    action: "Exported demographic registration summary by Purok for Q3 administrative review",
+                    category: "Reports",
+                    ipAddress: "192.168.1.10 (Master Server)",
+                    status: "Success",
+                  },
+                ]
+                  .filter((log) => {
+                    const matchesSearch =
+                      log.action.toLowerCase().includes(auditSearch.toLowerCase()) ||
+                      log.adminUser.toLowerCase().includes(auditSearch.toLowerCase()) ||
+                      log.id.toLowerCase().includes(auditSearch.toLowerCase());
+                    const matchesCategory =
+                      auditCategory === "ALL" || log.category === auditCategory;
+                    return matchesSearch && matchesCategory;
+                  })
+                  .map((log) => (
+                    <tr key={log.id} className="hover:bg-[#FFF9F3]/50 transition-colors">
+                      <td className="py-3 px-5 text-[#64748B] font-mono text-[11px] whitespace-nowrap">
+                        {new Date(log.timestamp).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
+                      </td>
+                      <td className="py-3 px-4">
+                        <p className="font-bold text-[#0F172A]">{log.adminUser}</p>
+                        <p className="text-[10px] text-[#64748B]">{log.role}</p>
+                      </td>
+                      <td className="py-3 px-4 font-medium text-[#0F172A] max-w-md">
+                        {log.action}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FFF9F3] text-[#F45113] border border-[#ECE7DF]">
+                          {log.category}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-[#64748B] font-mono text-[11px]">
+                        {log.ipAddress}
+                      </td>
+                      <td className="py-3 px-5 text-right">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>{log.status}</span>
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
