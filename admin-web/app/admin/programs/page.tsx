@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { mockPrograms } from "@/lib/mock-data/programs";
 import { Program, ProgramCategory, ProgramStatus } from "@/types";
+import { getPrograms, createProgram, updateProgram } from "@/lib/services/programs";
 import {
   Plus,
   Search,
@@ -27,6 +28,37 @@ export default function AdminProgramsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
+
+  useEffect(() => {
+    async function fetchLivePrograms() {
+      try {
+        const live = await getPrograms();
+        if (live && live.length > 0) {
+          const mapped: Program[] = live.map((p) => ({
+            id: p.id || `prog-${Date.now()}`,
+            title: p.title,
+            category: (p.category as ProgramCategory) || "Health",
+            description: p.description || "",
+            schedule: p.schedule || "",
+            location: p.location || "Barangay Lapasan Multi-Purpose Hall",
+            slots: Number(p.slots) || 100,
+            enrolled: Number(p.enrolledCount) || 0,
+            status: (p.status as ProgramStatus) || "Active",
+            officer: p.officer || "Barangay Officer",
+            benefits: ["Official barangay certificate", "Community program coverage"],
+            requirements: ["Barangay Lapasan Resident ID"],
+            startDate: p.schedule || new Date().toISOString().split("T")[0],
+            endDate: p.registrationDeadline || "2026-11-15",
+            tags: [p.category ? p.category.toLowerCase() : "civic"],
+          }));
+          setPrograms(mapped);
+        }
+      } catch (err) {
+        console.warn("Using offline programs cache:", err);
+      }
+    }
+    fetchLivePrograms();
+  }, []);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -77,7 +109,7 @@ export default function AdminProgramsPage() {
     setIsModalOpen(true);
   };
 
-  const handleSaveProgram = (e: React.FormEvent) => {
+  const handleSaveProgram = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim()) return;
 
@@ -93,9 +125,43 @@ export default function AdminProgramsPage() {
             : item
         )
       );
+      try {
+        await updateProgram(editingProgram.id, {
+          title: formData.title.trim(),
+          category: formData.category,
+          description: formData.description.trim(),
+          schedule: formData.schedule.trim(),
+          location: formData.location.trim(),
+          registrationDeadline: formData.registrationDeadline,
+          slots: Number(formData.slots),
+          officer: formData.officer.trim(),
+          status: formData.status,
+        });
+      } catch (err) {
+        console.warn("Firestore update skipped:", err);
+      }
     } else {
+      let createdDocId = `prog-${Date.now()}`;
+      try {
+        const id = await createProgram({
+          title: formData.title.trim(),
+          category: formData.category,
+          description: formData.description.trim(),
+          schedule: formData.schedule.trim(),
+          location: formData.location.trim(),
+          registrationDeadline: formData.registrationDeadline,
+          slots: Number(formData.slots),
+          enrolledCount: 0,
+          officer: formData.officer.trim(),
+          status: formData.status,
+        });
+        if (id) createdDocId = id;
+      } catch (err) {
+        console.warn("Firestore create skipped:", err);
+      }
+
       const newProgram: Program = {
-        id: `prog-${Date.now()}`,
+        id: createdDocId,
         title: formData.title.trim(),
         category: formData.category,
         description: formData.description.trim(),
@@ -117,10 +183,15 @@ export default function AdminProgramsPage() {
     setIsModalOpen(false);
   };
 
-  const handleUpdateStatus = (id: string, newStatus: ProgramStatus) => {
+  const handleUpdateStatus = async (id: string, newStatus: ProgramStatus) => {
     setPrograms((prev) =>
       prev.map((p) => (p.id === id ? { ...p, status: newStatus } : p))
     );
+    try {
+      await updateProgram(id, { status: newStatus });
+    } catch (err) {
+      console.warn("Firestore status update skipped:", err);
+    }
   };
 
   const filteredPrograms = programs.filter((p) => {

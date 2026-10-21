@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, Eye, EyeOff, CheckCircle2, ArrowRight, ShieldCheck } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, CheckCircle2, ArrowRight, ShieldCheck, AlertCircle } from "lucide-react";
+import { adminLogin } from "@/lib/services/auth";
 
 export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -10,15 +11,26 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [focusedField, setFocusedField] = useState<"email" | "password" | null>(null);
   const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
+    setError("");
+    try {
+      await adminLogin(email, password);
       router.push("/admin/dashboard");
-    }, 800);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Login failed";
+      if (msg.includes("user-not-found") || msg.includes("wrong-password") || msg.includes("invalid-credential")) {
+        setError("Invalid email or password. Please try again.");
+      } else {
+        setError("Login failed. Please check your connection and try again.");
+      }
+      setLoading(false);
+    }
   };
 
   const fillDemo = () => {
@@ -298,6 +310,14 @@ export default function AdminLoginPage() {
               </div>
 
             </div>
+
+            {/* Error Banner */}
+            {error && (
+              <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
 
             {/* Remember Me & Quick Demo Fill */}
             <div className="flex items-center justify-between text-xs pt-1 px-1">
