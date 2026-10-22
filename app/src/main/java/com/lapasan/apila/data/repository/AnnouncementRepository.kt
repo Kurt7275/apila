@@ -53,11 +53,22 @@ class AnnouncementRepository {
             try {
                 val snapshot = db.collection("announcements").get().await()
                 if (!snapshot.isEmpty) {
-                    val list = snapshot.toObjects(Announcement::class.java)
+                    val list = snapshot.documents.map { doc ->
+                        val rawPriority = doc.getString("priority")?.lowercase() ?: "normal"
+                        val mappedPriority = if (rawPriority.contains("urgent")) Announcement.PRIORITY_URGENT else Announcement.PRIORITY_NORMAL
+                        Announcement(
+                            id = doc.id,
+                            title = doc.getString("title") ?: "",
+                            content = doc.getString("message") ?: doc.getString("content") ?: "",
+                            authorName = doc.getString("publishedBy") ?: doc.getString("authorName") ?: "Barangay Lapasan Council",
+                            publishedAt = doc.getTimestamp("createdAt")?.toDate()?.time ?: System.currentTimeMillis(),
+                            priority = mappedPriority,
+                            targetProgramId = doc.getString("targetProgramId")
+                        )
+                    }
                     list.forEach { ann ->
-                        if (localAnnouncements.none { it.id == ann.id }) {
-                            localAnnouncements.add(ann)
-                        }
+                        val index = localAnnouncements.indexOfFirst { it.id == ann.id }
+                        if (index >= 0) localAnnouncements[index] = ann else localAnnouncements.add(0, ann)
                     }
                 }
             } catch (_: Exception) {}

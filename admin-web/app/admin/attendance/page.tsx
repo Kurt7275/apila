@@ -23,6 +23,7 @@ import { mockPrograms } from "@/lib/mock-data/programs";
 import { mockRegistrations } from "@/lib/mock-data/registrations";
 import { mockResidents } from "@/lib/mock-data/residents";
 import { ProgramStatusBadge } from "@/components/shared/StatusBadges";
+import { getAttendanceByProgram, markAttendance } from "@/lib/services/attendance";
 
 type AttendanceRecord = "PRESENT" | "ABSENT" | "UNMARKED";
 
@@ -96,11 +97,26 @@ export default function AdminAttendancePage() {
     }
   };
 
-  const handleMark = (regId: string, status: AttendanceRecord) => {
+  const handleMark = async (regId: string, status: AttendanceRecord) => {
     saveAttendance({
       ...attendanceMap,
       [regId]: status,
     });
+    if (status === "PRESENT" || status === "ABSENT") {
+      const reg = programRegistrations.find((r) => r.id === regId);
+      if (reg) {
+        try {
+          await markAttendance(
+            selectedProgramId,
+            reg.residentId,
+            reg.residentName,
+            status === "PRESENT" ? "Present" : "Absent"
+          );
+        } catch (err) {
+          console.warn("Firestore markAttendance skipped:", err);
+        }
+      }
+    }
   };
 
   const handleMarkAllPresent = () => {

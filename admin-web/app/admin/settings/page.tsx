@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAdminProfile, AdminProfile } from "@/lib/context/AdminProfileContext";
+import { getAuditLogs, AuditLog } from "@/lib/services/auditLogs";
 import {
   User,
   Building2,
@@ -31,6 +32,7 @@ export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState<"PROFILE" | "BARANGAY" | "SECURITY" | "AUDIT">("PROFILE");
   const [auditSearch, setAuditSearch] = useState("");
   const [auditCategory, setAuditCategory] = useState("ALL");
+  const [liveLogs, setLiveLogs] = useState<AuditLog[]>([]);
 
   // Form State initialized from context
   const [formData, setFormData] = useState<AdminProfile>(profile);
@@ -40,6 +42,18 @@ export default function AdminSettingsPage() {
   useEffect(() => {
     setFormData(profile);
   }, [profile]);
+
+  useEffect(() => {
+    async function fetchLogs() {
+      try {
+        const logs = await getAuditLogs();
+        if (logs && logs.length > 0) setLiveLogs(logs);
+      } catch (err) {
+        console.warn("Using default audit logs:", err);
+      }
+    }
+    fetchLogs();
+  }, []);
 
   const handleChange = (field: keyof AdminProfile, value: string) => {
     setFormData((prev) => {
@@ -552,68 +566,80 @@ export default function AdminSettingsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#ECE7DF] text-xs">
-                {[
-                  {
-                    id: "LOG-9102",
-                    timestamp: "2026-10-20T14:45:00",
-                    adminUser: profile.name,
-                    role: profile.role,
-                    action: "Approved resident registration for Juan Dela Cruz (Free Medical and Dental Checkup)",
-                    category: "Registration",
-                    ipAddress: "192.168.1.14 (Admin Terminal 01)",
-                    status: "Success",
-                  },
-                  {
-                    id: "LOG-9101",
-                    timestamp: "2026-10-18T08:30:00",
-                    adminUser: profile.name,
-                    role: profile.role,
-                    action: "Broadcasted Urgent Advisory: Typhoon Preparedness Advisory to 4,820 resident devices",
-                    category: "Advisory",
-                    ipAddress: "192.168.1.14 (Admin Terminal 01)",
-                    status: "Success",
-                  },
-                  {
-                    id: "LOG-9100",
-                    timestamp: "2026-10-15T11:20:00",
-                    adminUser: "Ricardo Gomez",
-                    role: "Program Officer",
-                    action: "Marked attendance for 42 participants in Livelihood Training: Bread & Pastry",
-                    category: "Attendance",
-                    ipAddress: "192.168.1.28 (Hall Laptop 02)",
-                    status: "Success",
-                  },
-                  {
-                    id: "LOG-9099",
-                    timestamp: "2026-10-12T09:15:00",
-                    adminUser: profile.name,
-                    role: profile.role,
-                    action: "Published new community program: Disaster Risk Reduction & Management Training",
-                    category: "Program",
-                    ipAddress: "192.168.1.14 (Admin Terminal 01)",
-                    status: "Success",
-                  },
-                  {
-                    id: "LOG-9098",
-                    timestamp: "2026-10-10T16:00:00",
-                    adminUser: profile.name,
-                    role: profile.role,
-                    action: "Updated Barangay Hall emergency contact hotline and office hours",
-                    category: "Security",
-                    ipAddress: "192.168.1.14 (Admin Terminal 01)",
-                    status: "Success",
-                  },
-                  {
-                    id: "LOG-9097",
-                    timestamp: "2026-10-08T13:40:00",
-                    adminUser: "Admin Lapasan",
-                    role: "Administrator",
-                    action: "Exported demographic registration summary by Purok for Q3 administrative review",
-                    category: "Reports",
-                    ipAddress: "192.168.1.10 (Master Server)",
-                    status: "Success",
-                  },
-                ]
+                {(liveLogs.length > 0
+                  ? liveLogs.map((l) => ({
+                      id: l.id || `LOG-${Date.now()}`,
+                      timestamp: l.createdAt ? new Date(l.createdAt.seconds * 1000).toISOString() : new Date().toISOString(),
+                      adminUser: l.officer || profile.name,
+                      role: "Administrator",
+                      action: l.action,
+                      category: l.category,
+                      ipAddress: l.ipTerminal || "192.168.1.14 (Admin Terminal)",
+                      status: l.status || "Success",
+                    }))
+                  : [
+                      {
+                        id: "LOG-9102",
+                        timestamp: "2026-10-20T14:45:00",
+                        adminUser: profile.name,
+                        role: profile.role,
+                        action: "Approved resident registration for Juan Dela Cruz (Free Medical and Dental Checkup)",
+                        category: "Registration",
+                        ipAddress: "192.168.1.14 (Admin Terminal 01)",
+                        status: "Success",
+                      },
+                      {
+                        id: "LOG-9101",
+                        timestamp: "2026-10-18T08:30:00",
+                        adminUser: profile.name,
+                        role: profile.role,
+                        action: "Broadcasted Urgent Advisory: Typhoon Preparedness Advisory to 4,820 resident devices",
+                        category: "Advisory",
+                        ipAddress: "192.168.1.14 (Admin Terminal 01)",
+                        status: "Success",
+                      },
+                      {
+                        id: "LOG-9100",
+                        timestamp: "2026-10-15T11:20:00",
+                        adminUser: "Ricardo Gomez",
+                        role: "Program Officer",
+                        action: "Marked attendance for 42 participants in Livelihood Training: Bread & Pastry",
+                        category: "Attendance",
+                        ipAddress: "192.168.1.28 (Hall Laptop 02)",
+                        status: "Success",
+                      },
+                      {
+                        id: "LOG-9099",
+                        timestamp: "2026-10-12T09:15:00",
+                        adminUser: profile.name,
+                        role: profile.role,
+                        action: "Published new community program: Disaster Risk Reduction & Management Training",
+                        category: "Program",
+                        ipAddress: "192.168.1.14 (Admin Terminal 01)",
+                        status: "Success",
+                      },
+                      {
+                        id: "LOG-9098",
+                        timestamp: "2026-10-10T16:00:00",
+                        adminUser: profile.name,
+                        role: profile.role,
+                        action: "Updated Barangay Hall emergency contact hotline and office hours",
+                        category: "Security",
+                        ipAddress: "192.168.1.14 (Admin Terminal 01)",
+                        status: "Success",
+                      },
+                      {
+                        id: "LOG-9097",
+                        timestamp: "2026-10-08T13:40:00",
+                        adminUser: "Admin Lapasan",
+                        role: "Administrator",
+                        action: "Exported demographic registration summary by Purok for Q3 administrative review",
+                        category: "Reports",
+                        ipAddress: "192.168.1.10 (Master Server)",
+                        status: "Success",
+                      },
+                    ]
+                )
                   .filter((log) => {
                     const matchesSearch =
                       log.action.toLowerCase().includes(auditSearch.toLowerCase()) ||

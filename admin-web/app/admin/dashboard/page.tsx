@@ -27,18 +27,79 @@ import { mockRegistrations } from "@/lib/mock-data/registrations";
 import { mockResidents } from "@/lib/mock-data/residents";
 import { useAdminProfile } from "@/lib/context/AdminProfileContext";
 import { RegistrationStatusBadge, ProgramStatusBadge } from "@/components/shared/StatusBadges";
+import { getPrograms } from "@/lib/services/programs";
+import { getRegistrations, updateRegistrationStatus } from "@/lib/services/registrations";
+import { getResidents } from "@/lib/services/residents";
+import { Program, Registration, Resident } from "@/types";
 
 export default function AdminDashboardPage() {
   const { profile } = useAdminProfile();
 
-  // Registrations state for quick approval on dashboard
-  const [registrations, setRegistrations] = useState(mockRegistrations);
+  // State populated from Firestore with fallback to mock
+  const [programsList, setProgramsList] = useState<Program[]>(mockPrograms);
+  const [registrations, setRegistrations] = useState<Registration[]>(mockRegistrations);
+  const [residentsCount, setResidentsCount] = useState<number>(mockResidents.length);
 
   // Digital Clock & Date
   const [currentDate, setCurrentDate] = useState({
     time: "08:00 AM",
     date: "Wednesday, October 21, 2026",
   });
+
+  useEffect(() => {
+    async function fetchDashboardData() {
+      try {
+        const [livePrograms, liveRegs, liveRes] = await Promise.allSettled([
+          getPrograms(),
+          getRegistrations(),
+          getResidents(),
+        ]);
+
+        if (livePrograms.status === "fulfilled" && livePrograms.value.length > 0) {
+          const mappedProgs: Program[] = livePrograms.value.map((p) => ({
+            id: p.id || `prog-${Date.now()}`,
+            title: p.title,
+            category: (p.category as any) || "Health",
+            description: p.description || "",
+            schedule: p.schedule || "",
+            location: p.location || "Barangay Lapasan Multi-Purpose Hall",
+            slots: Number(p.slots) || 100,
+            enrolled: Number(p.enrolledCount) || 0,
+            status: (p.status as any) || "Active",
+            officer: p.officer || "Barangay Officer",
+            benefits: ["Official barangay certificate"],
+            requirements: ["Barangay Lapasan Resident ID"],
+            startDate: p.schedule || "",
+            endDate: p.registrationDeadline || "",
+            tags: [p.category?.toLowerCase() || "civic"],
+          }));
+          setProgramsList(mappedProgs);
+        }
+
+        if (liveRegs.status === "fulfilled" && liveRegs.value.length > 0) {
+          const mappedRegs: Registration[] = liveRegs.value.map((r) => ({
+            id: r.id || `reg-${Date.now()}`,
+            residentId: r.residentId || "res-001",
+            residentName: r.residentName || "Resident",
+            programId: r.programId || "prog-001",
+            programTitle: r.programTitle || "Community Program",
+            purok: r.purok || "Purok 1",
+            phone: r.phone || "09170000000",
+            status: (r.status as any) || "Pending",
+            registeredAt: r.registeredAt ? new Date(r.registeredAt.seconds * 1000).toISOString() : new Date().toISOString(),
+          }));
+          setRegistrations(mappedRegs);
+        }
+
+        if (liveRes.status === "fulfilled" && liveRes.value.length > 0) {
+          setResidentsCount(liveRes.value.length);
+        }
+      } catch (err) {
+        console.warn("Using offline dashboard fallback:", err);
+      }
+    }
+    fetchDashboardData();
+  }, []);
 
   useEffect(() => {
     const updateTime = () => {
@@ -63,36 +124,46 @@ export default function AdminDashboardPage() {
   }, []);
 
   // One-tap approve from dashboard
-  const handleApprove = (id: string) => {
+  const handleApprove = async (id: string) => {
     setRegistrations((prev) =>
       prev.map((r) =>
         r.id === id ? { ...r, status: "Approved" as const, approvedAt: new Date().toISOString() } : r
       )
     );
+    try {
+      await updateRegistrationStatus(id, "Approved");
+    } catch (err) {
+      console.warn("Firestore approve skipped:", err);
+    }
   };
 
-  const handleReject = (id: string) => {
+  const handleReject = async (id: string) => {
     setRegistrations((prev) =>
       prev.map((r) =>
         r.id === id ? { ...r, status: "Rejected" as const } : r
       )
     );
+    try {
+      await updateRegistrationStatus(id, "Rejected");
+    } catch (err) {
+      console.warn("Firestore reject skipped:", err);
+    }
   };
 
   // ── Exact 5 Metrics required by Module 1 Specification ──
   // 1. Total registered residents
-  const totalRegisteredResidents = mockResidents.length;
+  const totalRegisteredResidents = residentsCount;
   // 2. Available programs (Active + Upcoming)
-  const availablePrograms = mockPrograms.filter(
+  const availablePrograms = programsList.filter(
     (p) => p.status === "Active" || p.status === "Upcoming"
   );
   // 3. Upcoming activities (Programs with upcoming schedules)
-  const upcomingActivities = mockPrograms.filter((p) => p.status === "Upcoming" || p.status === "Active").slice(0, 4);
+  const upcomingActivities = programsList.filter((p) => p.status === "Upcoming" || p.status === "Active").slice(0, 4);
   // 4. Pending registrations
   const pendingRegistrations = registrations.filter((r) => r.status === "Pending");
   // 5. Attendance summary
-  const totalEnrolledAcrossPrograms = mockPrograms.reduce((acc, p) => acc + p.enrolled, 0);
-  const avgAttendanceRate = 86; // 86% verified overall attendance rate across completed & active sessions
+  const totalEnrolledAcrossPrograms = programsList.reduce((acc, p) => acc + p.enrolled, 0);
+  const avgAttendanceRate = 86;
 
   // Recent Registrations (latest 5)
   const recentRegistrations = registrations.slice(0, 5);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { getAnnouncements, createAnnouncement } from "@/lib/services/announcements";
 import {
   Bell,
   Send,
@@ -117,33 +118,66 @@ export default function AdminAnnouncementsPage() {
     pushNotification: true,
   });
 
-  // Load from localStorage
+  // Load from Firestore
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("apila_announcements");
-      if (saved) {
-        setAnnouncements(JSON.parse(saved));
+    async function fetchLiveAnnouncements() {
+      try {
+        const live = await getAnnouncements();
+        if (live && live.length > 0) {
+          const mapped: BarangayAnnouncement[] = live.map((a) => ({
+            id: a.id || `anc-${Date.now()}`,
+            title: a.title,
+            category: (a.category as BarangayAnnouncement["category"]) || "General Advisory",
+            priority: (a.priority as BarangayAnnouncement["priority"]) || "Normal",
+            targetAudience: a.targetAudience || "All Residents",
+            message: a.message,
+            createdAt: a.createdAt ? new Date(a.createdAt.seconds * 1000).toISOString() : new Date().toISOString(),
+            pushSent: a.pushNotification ?? true,
+            reachCount: a.targetAudience?.includes("All") ? 4820 : 350,
+          }));
+          setAnnouncements(mapped);
+          return;
+        }
+      } catch (err) {
+        console.warn("Using offline announcements cache:", err);
       }
-    } catch {
-      // ignore
+      try {
+        const saved = localStorage.getItem("apila_announcements");
+        if (saved) setAnnouncements(JSON.parse(saved));
+      } catch {}
     }
+    fetchLiveAnnouncements();
   }, []);
 
   const saveToStorage = (items: BarangayAnnouncement[]) => {
     setAnnouncements(items);
     try {
       localStorage.setItem("apila_announcements", JSON.stringify(items));
-    } catch {
-      // ignore
-    }
+    } catch {}
   };
 
-  const handlePublish = (e: React.FormEvent) => {
+  const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim() || !formData.message.trim()) return;
 
+    let createdId = `anc-${Date.now()}`;
+    try {
+      const docId = await createAnnouncement({
+        title: formData.title.trim(),
+        category: formData.category,
+        priority: formData.priority,
+        targetAudience: formData.targetAudience,
+        message: formData.message.trim(),
+        pushNotification: formData.pushNotification,
+        publishedBy: "Admin",
+      });
+      if (docId) createdId = docId;
+    } catch (err) {
+      console.warn("Firestore create announcement skipped:", err);
+    }
+
     const newAnnouncement: BarangayAnnouncement = {
-      id: `anc-${Date.now()}`,
+      id: createdId,
       title: formData.title.trim(),
       category: formData.category,
       priority: formData.priority,

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { mockResidents } from "@/lib/mock-data/residents";
 import { mockRegistrations } from "@/lib/mock-data/registrations";
 import { Resident } from "@/types";
+import { getResidents, toggleResidentVerification } from "@/lib/services/residents";
 import {
   Search,
   Download,
@@ -32,20 +33,62 @@ export default function AdminResidentsPage() {
   // Selected Resident Modal
   const [selectedResident, setSelectedResident] = useState<Resident | null>(null);
 
+  useEffect(() => {
+    async function fetchLiveResidents() {
+      try {
+        const live = await getResidents();
+        if (live && live.length > 0) {
+          const mapped: Resident[] = live.map((r) => {
+            const parts = (r.name || "").trim().split(" ");
+            const firstName = parts[0] || "Resident";
+            const lastName = parts.slice(1).join(" ") || "";
+            return {
+              id: r.id || `res-${Date.now()}`,
+              firstName,
+              lastName,
+              email: r.email || "",
+              phone: r.phone || "",
+              purok: r.purok || "Purok 1",
+              street: r.address || `${r.purok}, Barangay Lapasan`,
+              householdId: r.householdId || "HH-001",
+              birthdate: r.birthdate || "1990-01-01",
+              sex: ((r.gender === "Male" ? "Male" : "Female") as Resident["sex"]),
+              civilStatus: (r.civilStatus as Resident["civilStatus"]) || "Single",
+              isVerified: r.isVerified ?? false,
+              registeredAt: r.createdAt ? new Date(r.createdAt.seconds * 1000).toISOString() : new Date().toISOString(),
+            };
+          });
+          setResidents(mapped);
+        }
+      } catch (err) {
+        console.warn("Using offline residents cache:", err);
+      }
+    }
+    fetchLiveResidents();
+  }, []);
+
   const getRegistrationsForResident = (residentId: string) => {
     return mockRegistrations.filter(
       (r) => r.residentId === residentId || r.residentName.toLowerCase() === `${selectedResident?.firstName} ${selectedResident?.lastName}`.toLowerCase()
     );
   };
 
-  const handleToggleVerification = (id: string) => {
+  const handleToggleVerification = async (id: string) => {
+    const current = residents.find((r) => r.id === id);
+    const newStatus = !current?.isVerified;
+
     setResidents((prev) =>
       prev.map((res) =>
-        res.id === id ? { ...res, isVerified: !res.isVerified } : res
+        res.id === id ? { ...res, isVerified: newStatus } : res
       )
     );
     if (selectedResident && selectedResident.id === id) {
-      setSelectedResident((prev) => (prev ? { ...prev, isVerified: !prev.isVerified } : null));
+      setSelectedResident((prev) => (prev ? { ...prev, isVerified: newStatus } : null));
+    }
+    try {
+      await toggleResidentVerification(id, newStatus);
+    } catch (err) {
+      console.warn("Firestore verification toggle skipped:", err);
     }
   };
 

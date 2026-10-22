@@ -128,7 +128,33 @@ class ProgramRepository {
             try {
                 val snapshot = db.collection("programs").get().await()
                 if (!snapshot.isEmpty) {
-                    val firestoreList = snapshot.toObjects(Program::class.java)
+                    val firestoreList = snapshot.documents.map { doc ->
+                        val slots = (doc.getLong("slots") ?: doc.getLong("maxCapacity") ?: 100L).toInt()
+                        val enrolled = (doc.getLong("enrolledCount") ?: doc.getLong("registeredCount") ?: 0L).toInt()
+                        val rawStatus = doc.getString("status")?.trim() ?: "Active"
+                        val mappedStatus = when (rawStatus.lowercase()) {
+                            "active", "published", "upcoming" -> Program.STATUS_PUBLISHED
+                            "completed", "closed" -> Program.STATUS_CLOSED
+                            "cancelled" -> Program.STATUS_CANCELLED
+                            else -> Program.STATUS_PUBLISHED
+                        }
+                        Program(
+                            id = doc.id,
+                            title = doc.getString("title") ?: "",
+                            category = doc.getString("category") ?: "Civic",
+                            description = doc.getString("description") ?: "",
+                            venue = doc.getString("location") ?: doc.getString("venue") ?: "Barangay Lapasan Multi-Purpose Hall",
+                            startDate = doc.getString("schedule") ?: doc.getString("startDate") ?: "",
+                            startTime = doc.getString("startTime") ?: "08:00 AM",
+                            endDate = doc.getString("registrationDeadline") ?: doc.getString("endDate") ?: "",
+                            endTime = doc.getString("endTime") ?: "05:00 PM",
+                            registrationDeadline = doc.getString("registrationDeadline") ?: "",
+                            maxCapacity = slots,
+                            registeredCount = enrolled,
+                            status = mappedStatus,
+                            createdBy = doc.getString("officer") ?: doc.getString("createdBy") ?: "Admin"
+                        )
+                    }
                     // merge into local cache
                     firestoreList.forEach { fp ->
                         val index = localPrograms.indexOfFirst { it.id == fp.id }

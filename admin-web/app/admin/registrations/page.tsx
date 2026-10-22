@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { mockRegistrations } from "@/lib/mock-data/registrations";
 import { mockPrograms } from "@/lib/mock-data/programs";
 import { Registration, RegistrationStatus } from "@/types";
+import { getRegistrations, updateRegistrationStatus } from "@/lib/services/registrations";
 import {
   Search,
   Download,
@@ -26,7 +27,32 @@ export default function AdminRegistrationsPage() {
   const [purokFilter, setPurokFilter] = useState<string>("ALL");
   const [exportNotice, setExportNotice] = useState<string | null>(null);
 
-  const approve = (id: string) => {
+  useEffect(() => {
+    async function fetchLiveRegistrations() {
+      try {
+        const live = await getRegistrations();
+        if (live && live.length > 0) {
+          const mapped: Registration[] = live.map((r) => ({
+            id: r.id || `reg-${Date.now()}`,
+            residentId: r.residentId || "res-001",
+            residentName: r.residentName || "Resident",
+            programId: r.programId || "prog-001",
+            programTitle: r.programTitle || "Community Program",
+            purok: r.purok || "Purok 1",
+            phone: r.phone || "09170000000",
+            status: (r.status as RegistrationStatus) || "Pending",
+            registeredAt: r.registeredAt ? new Date(r.registeredAt.seconds * 1000).toISOString() : new Date().toISOString(),
+          }));
+          setRegistrations(mapped);
+        }
+      } catch (err) {
+        console.warn("Using offline registrations cache:", err);
+      }
+    }
+    fetchLiveRegistrations();
+  }, []);
+
+  const approve = async (id: string) => {
     setRegistrations((prev) =>
       prev.map((r) =>
         r.id === id
@@ -38,14 +64,24 @@ export default function AdminRegistrationsPage() {
           : r
       )
     );
+    try {
+      await updateRegistrationStatus(id, "Approved");
+    } catch (err) {
+      console.warn("Firestore status update skipped:", err);
+    }
   };
 
-  const reject = (id: string) => {
+  const reject = async (id: string) => {
     setRegistrations((prev) =>
       prev.map((r) =>
         r.id === id ? { ...r, status: "Rejected" as const } : r
       )
     );
+    try {
+      await updateRegistrationStatus(id, "Rejected");
+    } catch (err) {
+      console.warn("Firestore status update skipped:", err);
+    }
   };
 
   // Program slots lookup map

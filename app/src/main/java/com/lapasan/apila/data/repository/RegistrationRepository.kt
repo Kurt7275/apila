@@ -154,7 +154,25 @@ class RegistrationRepository(
 
         firestore?.let { db ->
             try {
-                db.collection("registrations").document(newReg.id).set(newReg).await()
+                val firestoreData = hashMapOf(
+                    "id" to newReg.id,
+                    "residentId" to user.uid,
+                    "userId" to user.uid,
+                    "residentName" to user.fullName,
+                    "programId" to program.id,
+                    "programTitle" to program.title,
+                    "programCategory" to program.category,
+                    "programVenue" to program.venue,
+                    "programDateTime" to newReg.programDateTime,
+                    "purok" to user.purok,
+                    "residentPurok" to user.purok,
+                    "phone" to user.phone,
+                    "residentPhone" to user.phone,
+                    "status" to "Pending",
+                    "attendanceStatus" to "pending",
+                    "registeredAt" to com.google.firebase.Timestamp.now()
+                )
+                db.collection("registrations").document(newReg.id).set(firestoreData).await()
             } catch (_: Exception) {}
         }
 
