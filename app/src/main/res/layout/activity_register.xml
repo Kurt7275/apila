@@ -203,7 +203,48 @@
                 </LinearLayout>
             </FrameLayout>
 
-            <!-- Input 4: Purok / Address -->
+            <!-- Input 4: Purok Selection Dropdown -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_input_capsule">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="16dp">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_location"
+                        app:tint="#94A3B8"
+                        android:contentDescription="Purok" />
+
+                    <Spinner
+                        android:id="@+id/spinnerPurok"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:background="@null"
+                        android:spinnerMode="dropdown" />
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_forward"
+                        android:rotation="90"
+                        app:tint="#94A3B8"
+                        android:contentDescription="Dropdown arrow" />
+                </LinearLayout>
+            </FrameLayout>
+
+            <!-- Input 5: Street Address / House No. -->
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="54dp"
@@ -223,7 +264,7 @@
                         android:layout_height="20dp"
                         android:src="@drawable/ic_location"
                         app:tint="#94A3B8"
-                        android:contentDescription="Address" />
+                        android:contentDescription="Street Address" />
 
                     <EditText
                         android:id="@+id/etAddress"
@@ -231,7 +272,7 @@
                         android:layout_height="match_parent"
                         android:layout_marginStart="12dp"
                         android:background="@null"
-                        android:hint="Purok / Street Address"
+                        android:hint="House No. / Street Address (Optional)"
                         android:inputType="textPostalAddress"
                         android:textColor="#0F172A"
                         android:textColorHint="#94A3B8"

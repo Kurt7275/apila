@@ -3,10 +3,15 @@ package com.lapasan.apila.ui.auth
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import android.widget.EditText
+import android.widget.Spinner
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.lapasan.apila.R
 import com.lapasan.apila.databinding.ActivityRegisterBinding
 import com.lapasan.apila.ui.resident.ResidentMainActivity
@@ -24,6 +29,7 @@ class RegisterActivity : AppCompatActivity() {
     private lateinit var etPassword: EditText
     private lateinit var etConfirmPassword: EditText
     private lateinit var etAddress: EditText
+    private lateinit var spinnerPurok: Spinner
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,9 +42,42 @@ class RegisterActivity : AppCompatActivity() {
         etPassword = findViewById(R.id.etPassword)
         etConfirmPassword = findViewById(R.id.etConfirmPassword)
         etAddress = findViewById(R.id.etAddress)
+        spinnerPurok = findViewById(R.id.spinnerPurok)
 
+        setupPurokSpinner()
         setupListeners()
         observeViewModel()
+    }
+
+    private fun setupPurokSpinner() {
+        val purokList = listOf("Select Your Purok (Required)") + resources.getStringArray(R.array.lapasan_puroks).toList()
+        val adapter = object : ArrayAdapter<String>(this, R.layout.item_spinner_selected, purokList) {
+            override fun isEnabled(position: Int): Boolean {
+                return position != 0
+            }
+
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val view = super.getView(position, convertView, parent) as TextView
+                if (position == 0) {
+                    view.setTextColor(ContextCompat.getColor(context, R.color.text_tertiary))
+                } else {
+                    view.setTextColor(ContextCompat.getColor(context, R.color.text_primary))
+                }
+                return view
+            }
+
+            override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val view = super.getDropDownView(position, convertView, parent) as TextView
+                if (position == 0) {
+                    view.setTextColor(ContextCompat.getColor(context, R.color.text_tertiary))
+                } else {
+                    view.setTextColor(ContextCompat.getColor(context, R.color.text_primary))
+                }
+                return view
+            }
+        }
+        adapter.setDropDownViewResource(R.layout.item_spinner_dropdown)
+        spinnerPurok.adapter = adapter
     }
 
     private fun setupListeners() {
@@ -73,6 +112,11 @@ class RegisterActivity : AppCompatActivity() {
                 etEmail.requestFocus()
                 return@setOnClickListener
             }
+            if (spinnerPurok.selectedItemPosition <= 0) {
+                Toast.makeText(this, "Please select your Purok", Toast.LENGTH_SHORT).show()
+                spinnerPurok.performClick()
+                return@setOnClickListener
+            }
             if (password.length < 6) {
                 Toast.makeText(this, "Password must be at least 6 characters", Toast.LENGTH_SHORT).show()
                 etPassword.requestFocus()
@@ -84,15 +128,19 @@ class RegisterActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            val finalAddress = if (address.isBlank()) "Barangay Lapasan, CDO" else address
-            val purok = if (finalAddress.contains("Purok", ignoreCase = true)) finalAddress else "Purok 2 - Lapasan Proper"
+            val selectedPurok = spinnerPurok.selectedItem.toString()
+            val finalAddress = if (address.isBlank()) {
+                "$selectedPurok, Barangay Lapasan, CDO"
+            } else {
+                "$address, $selectedPurok, Barangay Lapasan, CDO"
+            }
 
             authViewModel.register(
                 fullName = fullName,
                 email = email,
                 pass = password,
                 phone = if (phone.isBlank()) "09170000000" else phone,
-                purok = purok,
+                purok = selectedPurok,
                 address = finalAddress
             )
         }
