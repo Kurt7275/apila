@@ -14,13 +14,16 @@ data class Registration(
     val residentPhone: String = "",
     val residentPurok: String = "",
     val registeredAt: Long = System.currentTimeMillis(),
-    val status: String = STATUS_CONFIRMED, // "confirmed" or "cancelled"
-    val attendanceStatus: String = ATTENDANCE_PENDING // "pending", "present", "absent"
+    val status: String = STATUS_CONFIRMED,
+    val attendanceStatus: String = ATTENDANCE_PENDING
 ) : Serializable {
 
     companion object {
         const val STATUS_CONFIRMED = "confirmed"
+        const val STATUS_APPROVED = "Approved"
+        const val STATUS_PENDING = "Pending"
         const val STATUS_CANCELLED = "cancelled"
+        const val STATUS_REJECTED = "Rejected"
 
         const val ATTENDANCE_PENDING = "pending"
         const val ATTENDANCE_PRESENT = "present"
@@ -28,5 +31,5 @@ data class Registration(
     }
 
     val isActive: Boolean
-        get() = status == STATUS_CONFIRMED
+        get() = status.lowercase() in listOf("approved", "confirmed", "pending")
 }

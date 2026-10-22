@@ -1,8 +1,7 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   Calendar,
@@ -19,12 +18,11 @@ import {
   FileText,
   Check,
   Bell,
-  Sparkles,
 } from "lucide-react";
-import { mockPrograms } from "@/lib/mock-data/programs";
-import { mockRegistrations } from "@/lib/mock-data/registrations";
+import { getProgramById } from "@/lib/services/programs";
+import { getRegistrations, updateRegistrationStatus } from "@/lib/services/registrations";
 import { RegistrationStatusBadge, ProgramStatusBadge } from "@/components/shared/StatusBadges";
-import { RegistrationStatus } from "@/types";
+import { RegistrationStatus, Program as FullProgram } from "@/types";
 
 export default function AdminProgramDetailPage({
   params,
@@ -32,24 +30,58 @@ export default function AdminProgramDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const program = mockPrograms.find((p) => p.id === id);
-
-  if (!program) {
-    notFound();
-  }
-
-  // Filter registrations for this program
-  const [registrations, setRegistrations] = useState(
-    mockRegistrations.filter((r) => r.programId === id)
-  );
+  const [program, setProgram] = useState<FullProgram | null>(null);
+  const [registrations, setRegistrations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [activeTab, setActiveTab] = useState<"roster" | "details">("roster");
-  const [broadcastMessage, setBroadcastMessage] = useState("");
-  const [broadcastSent, setBroadcastSent] = useState(false);
 
-  const handleStatusChange = (regId: string, newStatus: RegistrationStatus) => {
+  useEffect(() => {
+    async function loadData() {
+      setLoading(true);
+      try {
+        const [prog, allRegs] = await Promise.allSettled([
+          getProgramById(id),
+          getRegistrations(),
+        ]);
+
+        if (prog.status === "fulfilled" && prog.value) {
+          const p = prog.value;
+          setProgram({
+            id: p.id || id,
+            title: p.title,
+            category: (p.category as any) || "Health",
+            description: p.description || "",
+            schedule: p.schedule || "",
+            location: p.location || "Barangay Lapasan Multi-Purpose Hall",
+            slots: Number(p.slots) || 100,
+            enrolled: Number(p.enrolledCount) || 0,
+            status: (p.status as any) || "Active",
+            officer: p.officer || "Barangay Officer",
+            benefits: ["Official barangay certificate"],
+            requirements: ["Barangay Lapasan Resident ID"],
+            startDate: p.schedule || "",
+            endDate: p.registrationDeadline || "",
+            tags: [p.category?.toLowerCase() || "civic"],
+          });
+        }
+
+        if (allRegs.status === "fulfilled" && allRegs.value) {
+          const forProgram = allRegs.value.filter((r) => r.programId === id);
+          setRegistrations(forProgram);
+        }
+      } catch (err) {
+        console.warn("Failed loading program details:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, [id]);
+
+  const handleStatusChange = async (regId: string, newStatus: "Approved" | "Rejected") => {
     setRegistrations((prev) =>
       prev.map((r) =>
         r.id === regId
@@ -61,12 +93,17 @@ export default function AdminProgramDetailPage({
           : r
       )
     );
+    try {
+      await updateRegistrationStatus(regId, newStatus);
+    } catch (err) {
+      console.warn("Status update skipped:", err);
+    }
   };
 
   const filteredRegistrations = registrations.filter((r) => {
     const matchesSearch =
-      r.residentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.purok.toLowerCase().includes(searchTerm.toLowerCase());
+      r.residentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.purok?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "All" || r.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -74,15 +111,27 @@ export default function AdminProgramDetailPage({
   const approvedCount = registrations.filter((r) => r.status === "Approved" || r.status === "Completed").length;
   const pendingCount = registrations.filter((r) => r.status === "Pending").length;
 
-  const handleSendBroadcast = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!broadcastMessage.trim()) return;
-    setBroadcastSent(true);
-    setTimeout(() => {
-      setBroadcastSent(false);
-      setBroadcastMessage("");
-    }, 3000);
-  };
+  if (loading) {
+    return (
+      <div className="p-12 text-center text-xs text-[#64748B]">
+        Loading program...
+      </div>
+    );
+  }
+
+  if (!program) {
+    return (
+      <div className="p-12 text-center space-y-4">
+        <p className="text-sm font-bold text-[#0F172A]">Program not found</p>
+        <Link
+          href="/admin/programs"
+          className="inline-flex items-center gap-1.5 text-xs text-[#F45113] font-bold"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Programs
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1400px] mx-auto selection:bg-[#F45113]/15 selection:text-[#F45113]">
@@ -93,7 +142,7 @@ export default function AdminProgramDetailPage({
             href="/admin/programs"
             className="inline-flex items-center gap-1.5 text-xs text-[#64748B] hover:text-[#F45113] font-bold mb-2 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to Programs Management
+            <ArrowLeft className="w-4 h-4" /> Back to Programs
           </Link>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
@@ -122,7 +171,7 @@ export default function AdminProgramDetailPage({
             className="flex items-center gap-2 px-4 py-2.5 bg-white border border-[#ECE7DF] hover:border-[#F45113]/50 text-xs font-bold text-[#0F172A] rounded-2xl shadow-sm transition-all cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 text-[#F45113]" />
-            <span>Export Roster (JSON)</span>
+            <span>Export Roster</span>
           </button>
         </div>
       </div>
@@ -174,199 +223,113 @@ export default function AdminProgramDetailPage({
               : "text-[#64748B] hover:text-[#0F172A] bg-white border border-[#ECE7DF]"
           }`}
         >
-          Program Specifications & Benefits
+          Details
         </button>
       </div>
 
+      {/* ── Tab Content ── */}
       {activeTab === "roster" ? (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Main Roster Table (8 cols) */}
-          <div className="lg:col-span-8 space-y-4">
-            <div className="bg-white rounded-3xl border border-[#ECE7DF] shadow-sm overflow-hidden">
-              <div className="p-4 sm:p-5 border-b border-[#ECE7DF] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="relative min-w-[220px] flex-1 max-w-sm">
-                  <Search className="w-4 h-4 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="Search resident or purok..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-4 py-1.5 rounded-full border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113]"
-                  />
-                </div>
+        <div className="bg-white rounded-3xl border border-[#ECE7DF] shadow-sm overflow-hidden space-y-4">
+          <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#ECE7DF]">
+            <div className="relative min-w-[240px] max-w-sm">
+              <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search registered residents..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 rounded-full border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113]"
+              />
+            </div>
 
-                <div className="flex items-center gap-1.5">
-                  {(["All", "Pending", "Approved", "Completed", "Rejected"] as const).map((st) => (
-                    <button
-                      key={st}
-                      onClick={() => setStatusFilter(st)}
-                      className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
-                        statusFilter === st
-                          ? "bg-[#F45113] text-white"
-                          : "text-[#64748B] hover:text-[#0F172A] bg-[#FFF9F3]"
-                      }`}
-                    >
-                      {st}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="bg-[#FFF9F3]/60 border-b border-[#ECE7DF] text-[10px] font-extrabold text-[#64748B] uppercase tracking-wider">
-                      <th className="py-3 px-4">Resident Name</th>
-                      <th className="py-3 px-3">Purok</th>
-                      <th className="py-3 px-3">Registration Date</th>
-                      <th className="py-3 px-3 text-center">Status</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#ECE7DF]">
-                    {filteredRegistrations.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="py-10 text-center text-[#64748B]">
-                          No registered residents match your filter.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredRegistrations.map((reg) => (
-                        <tr key={reg.id} className="hover:bg-[#FFF9F3]/40 transition-colors">
-                          <td className="py-3 px-4 font-bold text-[#0F172A]">
-                            {reg.residentName}
-                          </td>
-                          <td className="py-3 px-3">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#FFF9F3] border border-[#ECE7DF]">
-                              {reg.purok}
-                            </span>
-                          </td>
-                          <td className="py-3 px-3 text-[#64748B] text-[11px]">
-                            {new Date(reg.registeredAt).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
-                          </td>
-                          <td className="py-3 px-3 text-center">
-                            <RegistrationStatusBadge status={reg.status} />
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            {reg.status === "Pending" && (
-                              <div className="inline-flex items-center gap-1 justify-end">
-                                <button
-                                  onClick={() => handleStatusChange(reg.id, "Approved")}
-                                  className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 cursor-pointer"
-                                >
-                                  Approve
-                                </button>
-                                <button
-                                  onClick={() => handleStatusChange(reg.id, "Rejected")}
-                                  className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 cursor-pointer"
-                                >
-                                  Reject
-                                </button>
-                              </div>
-                            )}
-                            {reg.status === "Approved" && (
-                              <button
-                                onClick={() => handleStatusChange(reg.id, "Completed")}
-                                className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 cursor-pointer"
-                              >
-                                Mark Completed
-                              </button>
-                            )}
-                            {reg.status === "Completed" && (
-                              <span className="text-[11px] text-emerald-700 font-bold inline-flex items-center gap-1">
-                                <Check className="w-3.5 h-3.5" /> Attended
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+            <div className="flex items-center p-1 rounded-full bg-[#FFF9F3] border border-[#ECE7DF]">
+              {(["All", "Approved", "Pending", "Rejected"] as const).map((st) => (
+                <button
+                  key={st}
+                  onClick={() => setStatusFilter(st)}
+                  className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
+                    statusFilter === st
+                      ? "bg-[#0F172A] text-white"
+                      : "text-[#64748B] hover:text-[#0F172A]"
+                  }`}
+                >
+                  {st}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Side Panel: Broadcast Announcement to this program (4 cols) */}
-          <div className="lg:col-span-4 space-y-4">
-            <div className="bg-white rounded-3xl border border-[#ECE7DF] p-5 shadow-sm space-y-4">
-              <div>
-                <h3 className="text-sm font-extrabold text-[#0F172A] flex items-center gap-2">
-                  <Bell className="w-4 h-4 text-[#F45113]" />
-                  Broadcast to Participants
-                </h3>
-                <p className="text-xs text-[#64748B] mt-0.5">
-                  Send a push notification alert directly to all {registrations.length} registered residents.
-                </p>
-              </div>
-
-              {broadcastSent && (
-                <div className="bg-emerald-50 text-emerald-800 p-3 rounded-2xl border border-emerald-200 text-xs font-bold flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-600" />
-                  <span>Notification broadcast sent to {registrations.length} participants!</span>
-                </div>
-              )}
-
-              <form onSubmit={handleSendBroadcast} className="space-y-3">
-                <textarea
-                  rows={4}
-                  value={broadcastMessage}
-                  onChange={(e) => setBroadcastMessage(e.target.value)}
-                  placeholder="e.g. Please bring your valid ID for tomorrow's checkup at the Lapasan Multi-Purpose Hall..."
-                  className="w-full p-3 border border-[#ECE7DF] bg-[#FFF9F3] rounded-2xl text-xs font-medium text-[#0F172A] outline-none focus:border-[#F45113] resize-none"
-                />
-                <button
-                  type="submit"
-                  className="w-full py-2.5 bg-[#F45113] hover:bg-[#d4430e] text-white text-xs font-bold rounded-2xl shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Broadcast to Resident App</span>
-                </button>
-              </form>
-            </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-[#FFF9F3]/60 border-b border-[#ECE7DF] text-[10px] font-extrabold text-[#64748B] uppercase tracking-wider">
+                  <th className="py-3 px-5">Resident Name</th>
+                  <th className="py-3 px-4">Purok</th>
+                  <th className="py-3 px-4">Registration Date</th>
+                  <th className="py-3 px-4 text-center">Status</th>
+                  <th className="py-3 px-5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#ECE7DF]">
+                {filteredRegistrations.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-10 text-center text-xs text-[#94A3B8]">
+                      No participants registered for this program yet
+                    </td>
+                  </tr>
+                ) : (
+                  filteredRegistrations.map((r) => (
+                    <tr key={r.id} className="hover:bg-[#FFF9F3]/40 transition-colors">
+                      <td className="py-3.5 px-5 font-bold text-[#0F172A]">{r.residentName}</td>
+                      <td className="py-3.5 px-4">{r.purok}</td>
+                      <td className="py-3.5 px-4 text-[#64748B]">
+                        {new Date(r.registeredAt).toLocaleDateString()}
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <RegistrationStatusBadge status={r.status} />
+                      </td>
+                      <td className="py-3.5 px-5 text-right">
+                        {r.status === "Pending" ? (
+                          <div className="inline-flex items-center gap-1 justify-end">
+                            <button
+                              onClick={() => handleStatusChange(r.id, "Approved")}
+                              className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleStatusChange(r.id, "Rejected")}
+                              className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] font-medium text-[#94A3B8]">Processed</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       ) : (
-        /* Details Tab */
-        <div className="bg-white rounded-3xl border border-[#ECE7DF] p-6 sm:p-8 shadow-sm space-y-6 max-w-3xl">
-          <div>
-            <h3 className="text-base font-extrabold text-[#0F172A]">Program Description</h3>
-            <p className="text-xs sm:text-sm text-[#475569] mt-2 leading-relaxed">
-              {program.description}
-            </p>
-          </div>
+        <div className="bg-white rounded-3xl border border-[#ECE7DF] p-6 shadow-sm space-y-4">
+          <h3 className="text-sm font-extrabold text-[#0F172A]">Program Description</h3>
+          <p className="text-xs text-[#64748B] leading-relaxed">
+            {program.description || "No description provided."}
+          </p>
 
-          <div className="grid sm:grid-cols-2 gap-6 pt-4 border-t border-[#ECE7DF]">
-            <div className="space-y-2">
-              <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#0F172A]">
-                Participant Benefits
-              </h4>
-              <ul className="space-y-1.5 text-xs text-[#475569]">
-                {program.benefits.map((b, i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#F45113]" />
-                    <span>{b}</span>
-                  </li>
-                ))}
-              </ul>
+          <div className="pt-4 border-t border-[#ECE7DF] grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div>
+              <p className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">Venue</p>
+              <p className="font-semibold text-[#0F172A] mt-0.5">{program.location}</p>
             </div>
-
-            <div className="space-y-2">
-              <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#0F172A]">
-                Requirements
-              </h4>
-              <ul className="space-y-1.5 text-xs text-[#475569]">
-                {program.requirements.map((r, i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#0F172A]" />
-                    <span>{r}</span>
-                  </li>
-                ))}
-              </ul>
+            <div>
+              <p className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">Schedule</p>
+              <p className="font-semibold text-[#0F172A] mt-0.5">{program.schedule}</p>
             </div>
           </div>
         </div>

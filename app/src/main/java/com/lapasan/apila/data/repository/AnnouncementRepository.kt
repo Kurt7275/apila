@@ -16,35 +16,8 @@ class AnnouncementRepository {
     }
 
     companion object {
-        val localAnnouncements = mutableListOf(
-            Announcement(
-                id = "ann_001",
-                title = "Reminder: Free Medical & Dental Mission Slot Reservation",
-                content = "Please be advised that registration for the upcoming Lapasan Medical & Dental Mission is now open. Don't forget to bring your valid ID or Barangay Resident Certificate on the day of the event.",
-                authorName = "Hon. Roberto Delos Reyes (Barangay Captain)",
-                publishedAt = System.currentTimeMillis() - 3600000L * 5,
-                priority = Announcement.PRIORITY_URGENT,
-                targetProgramId = "prog_001"
-            ),
-            Announcement(
-                id = "ann_002",
-                title = "Inter-Purok Basketball League Screening & Roster Submission",
-                content = "Team captains of all Puroks in Lapasan must submit the final line-up and medical clearance to the SK Office on or before October 18, 2026.",
-                authorName = "SK Chairman Lapasan",
-                publishedAt = System.currentTimeMillis() - 86400000L * 1,
-                priority = Announcement.PRIORITY_NORMAL,
-                targetProgramId = "prog_002"
-            ),
-            Announcement(
-                id = "ann_003",
-                title = "Notice: TESDA Bread & Pastry Slots Now Full",
-                content = "Thank you for the tremendous interest in our TESDA livelihood program. All 25 slots are currently occupied. We will announce the next batch schedule soon.",
-                authorName = "Livelihood Committee Head",
-                publishedAt = System.currentTimeMillis() - 86400000L * 2,
-                priority = Announcement.PRIORITY_NORMAL,
-                targetProgramId = "prog_003"
-            )
-        )
+        // Clean dynamic cache — no hardcoded sample announcements
+        val localAnnouncements = mutableListOf<Announcement>()
     }
 
     suspend fun getAnnouncements(): Resource<List<Announcement>> {
@@ -52,25 +25,21 @@ class AnnouncementRepository {
         if (db != null) {
             try {
                 val snapshot = db.collection("announcements").get().await()
-                if (!snapshot.isEmpty) {
-                    val list = snapshot.documents.map { doc ->
-                        val rawPriority = doc.getString("priority")?.lowercase() ?: "normal"
-                        val mappedPriority = if (rawPriority.contains("urgent")) Announcement.PRIORITY_URGENT else Announcement.PRIORITY_NORMAL
-                        Announcement(
-                            id = doc.id,
-                            title = doc.getString("title") ?: "",
-                            content = doc.getString("message") ?: doc.getString("content") ?: "",
-                            authorName = doc.getString("publishedBy") ?: doc.getString("authorName") ?: "Barangay Lapasan Council",
-                            publishedAt = doc.getTimestamp("createdAt")?.toDate()?.time ?: System.currentTimeMillis(),
-                            priority = mappedPriority,
-                            targetProgramId = doc.getString("targetProgramId")
-                        )
-                    }
-                    list.forEach { ann ->
-                        val index = localAnnouncements.indexOfFirst { it.id == ann.id }
-                        if (index >= 0) localAnnouncements[index] = ann else localAnnouncements.add(0, ann)
-                    }
+                val list = snapshot.documents.map { doc ->
+                    val rawPriority = doc.getString("priority")?.lowercase() ?: "normal"
+                    val mappedPriority = if (rawPriority.contains("urgent")) Announcement.PRIORITY_URGENT else Announcement.PRIORITY_NORMAL
+                    Announcement(
+                        id = doc.id,
+                        title = doc.getString("title") ?: "",
+                        content = doc.getString("message") ?: doc.getString("content") ?: "",
+                        authorName = doc.getString("publishedBy") ?: doc.getString("authorName") ?: "Barangay Lapasan Council",
+                        publishedAt = doc.getTimestamp("createdAt")?.toDate()?.time ?: System.currentTimeMillis(),
+                        priority = mappedPriority,
+                        targetProgramId = doc.getString("targetProgramId")
+                    )
                 }
+                localAnnouncements.clear()
+                localAnnouncements.addAll(list)
             } catch (_: Exception) {}
         }
         return Resource.Success(localAnnouncements.sortedByDescending { it.publishedAt })
@@ -87,7 +56,16 @@ class AnnouncementRepository {
 
         firestore?.let { db ->
             try {
-                db.collection("announcements").document(finalAnn.id).set(finalAnn).await()
+                val data = hashMapOf(
+                    "title" to finalAnn.title,
+                    "message" to finalAnn.content,
+                    "category" to "General Advisory",
+                    "priority" to (if (finalAnn.priority == Announcement.PRIORITY_URGENT) "Urgent" else "Normal"),
+                    "targetAudience" to "All Residents",
+                    "publishedBy" to finalAnn.authorName,
+                    "createdAt" to com.google.firebase.Timestamp.now()
+                )
+                db.collection("announcements").document(finalAnn.id).set(data).await()
             } catch (_: Exception) {}
         }
 

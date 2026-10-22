@@ -188,18 +188,9 @@ export default function AdminAttendancePage() {
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F45113]/10 text-[#F45113] uppercase tracking-wider">
-              Module 04
-            </span>
-            <span className="text-xs text-[#64748B] font-semibold">Barangay Lapasan Operations</span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
-            Attendance Management
+            Attendance
           </h1>
-          <p className="text-xs sm:text-sm text-[#64748B] mt-1">
-            Record, verify, and monitor resident participation across official community programs.
-          </p>
         </div>
 
         {/* Global Controls */}

@@ -137,20 +137,9 @@ export default function AdminRegistrationsPage() {
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F45113]/10 text-[#F45113] uppercase tracking-wider">
-              Module 03
-            </span>
-            <span className="text-xs text-[#64748B] font-semibold">
-              Resident Sign-ups from Mobile App
-            </span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
-            Registration Management
+            Registrations
           </h1>
-          <p className="text-xs sm:text-sm text-[#64748B] mt-1">
-            Review resident sign-ups submitted through the APILA mobile application, monitor available program slots, and approve or reject registrations.
-          </p>
         </div>
 
         <button
@@ -158,7 +147,7 @@ export default function AdminRegistrationsPage() {
           className="flex items-center gap-2 px-4 py-2.5 bg-white border border-[#ECE7DF] hover:border-[#F45113]/50 text-xs font-bold text-[#0F172A] rounded-2xl shadow-sm transition-all cursor-pointer self-start sm:self-auto"
         >
           <Download className="w-3.5 h-3.5 text-[#F45113]" />
-          <span>Export Registrations (CSV)</span>
+          <span>Export CSV</span>
         </button>
       </div>
 

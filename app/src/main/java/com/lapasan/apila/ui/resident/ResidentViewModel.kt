@@ -62,14 +62,20 @@ class ResidentViewModel(
 
     fun loadMyPrograms() {
         val user = currentUser ?: return
-        val list = registrationRepository.getActiveRegistrations(user.uid)
-        _activeRegistrations.value = list
+        viewModelScope.launch {
+            registrationRepository.fetchUserRegistrations(user.uid)
+            val list = registrationRepository.getActiveRegistrations(user.uid)
+            _activeRegistrations.value = list
+        }
     }
 
     fun loadHistory() {
         val user = currentUser ?: return
-        val list = registrationRepository.getRegistrationHistory(user.uid)
-        _historyRegistrations.value = list
+        viewModelScope.launch {
+            registrationRepository.fetchUserRegistrations(user.uid)
+            val list = registrationRepository.getRegistrationHistory(user.uid)
+            _historyRegistrations.value = list
+        }
     }
 
     fun loadAnnouncements() {

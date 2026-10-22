@@ -20,114 +20,53 @@ class RegistrationRepository(
     }
 
     companion object {
-        // Seed initial registrations to demonstrate "My Programs" and "History" immediately
-        val localRegistrations = mutableListOf(
-            // Resident's upcoming registration
-            Registration(
-                id = "reg_101",
-                programId = "prog_001",
-                programTitle = "Barangay Lapasan Medical & Dental Mission",
-                programCategory = "Health & Wellness",
-                programVenue = "Lapasan Covered Court",
-                programDateTime = "Oct 15, 2026 • 08:00 AM",
-                userId = "demo_resident_001",
-                residentName = "Maria Clara Santos",
-                residentPhone = "09171234567",
-                residentPurok = "Purok 2 - Lapasan Proper",
-                registeredAt = System.currentTimeMillis() - 86400000L * 2,
-                status = Registration.STATUS_CONFIRMED,
-                attendanceStatus = Registration.ATTENDANCE_PENDING
-            ),
-            // Resident's completed history item (Present)
-            Registration(
-                id = "reg_102",
-                programId = "prog_hist_001",
-                programTitle = "Lapasan Coastal Clean-up & Mangrove Planting",
-                programCategory = "Community Clean-up & Environment",
-                programVenue = "Lapasan Coastal Shoreline",
-                programDateTime = "Sep 14, 2026 • 06:00 AM",
-                userId = "demo_resident_001",
-                residentName = "Maria Clara Santos",
-                residentPhone = "09171234567",
-                residentPurok = "Purok 2 - Lapasan Proper",
-                registeredAt = System.currentTimeMillis() - 86400000L * 20,
-                status = Registration.STATUS_CONFIRMED,
-                attendanceStatus = Registration.ATTENDANCE_PRESENT
-            ),
-            // Resident's completed history item (Absent)
-            Registration(
-                id = "reg_103",
-                programId = "prog_hist_002",
-                programTitle = "Barangay General Assembly & Budget Hearing",
-                programCategory = "General Civic Assembly",
-                programVenue = "Barangay Lapasan Gymnasium",
-                programDateTime = "Aug 20, 2026 • 02:00 PM",
-                userId = "demo_resident_001",
-                residentName = "Maria Clara Santos",
-                residentPhone = "09171234567",
-                residentPurok = "Purok 2 - Lapasan Proper",
-                registeredAt = System.currentTimeMillis() - 86400000L * 45,
-                status = Registration.STATUS_CONFIRMED,
-                attendanceStatus = Registration.ATTENDANCE_ABSENT
-            ),
-            // Additional participants for program 1 to test admin attendance & participants
-            Registration(
-                id = "reg_201",
-                programId = "prog_001",
-                programTitle = "Barangay Medical & Dental Mission",
-                programCategory = "Health & Wellness",
-                programVenue = "Lapasan Covered Court",
-                programDateTime = "Oct 15, 2026 • 08:00 AM",
-                userId = "usr_002",
-                residentName = "Juan Dela Cruz",
-                residentPhone = "09181112233",
-                residentPurok = "Purok 1 - Kolambog",
-                registeredAt = System.currentTimeMillis() - 86400000L * 3,
-                status = Registration.STATUS_CONFIRMED,
-                attendanceStatus = Registration.ATTENDANCE_PRESENT
-            ),
-            Registration(
-                id = "reg_202",
-                programId = "prog_001",
-                programTitle = "Barangay Medical & Dental Mission",
-                programCategory = "Health & Wellness",
-                programVenue = "Lapasan Covered Court",
-                programDateTime = "Oct 15, 2026 • 08:00 AM",
-                userId = "usr_003",
-                residentName = "Rosalinda Mendoza",
-                residentPhone = "09204445566",
-                residentPurok = "Purok 6 - Riverside",
-                registeredAt = System.currentTimeMillis() - 86400000L * 1,
-                status = Registration.STATUS_CONFIRMED,
-                attendanceStatus = Registration.ATTENDANCE_PENDING
-            ),
-            Registration(
-                id = "reg_203",
-                programId = "prog_001",
-                programTitle = "Barangay Medical & Dental Mission",
-                programCategory = "Health & Wellness",
-                programVenue = "Lapasan Covered Court",
-                programDateTime = "Oct 15, 2026 • 08:00 AM",
-                userId = "usr_004",
-                residentName = "Antonio Silayan",
-                residentPhone = "09228889900",
-                residentPurok = "Purok 7 - Bitan-ag",
-                registeredAt = System.currentTimeMillis() - 86400000L * 4,
-                status = Registration.STATUS_CONFIRMED,
-                attendanceStatus = Registration.ATTENDANCE_PENDING
-            )
-        )
+        // Clean dynamic cache — no hardcoded sample registrations
+        val localRegistrations = mutableListOf<Registration>()
+    }
+
+    suspend fun fetchUserRegistrations(userId: String): List<Registration> {
+        val db = firestore
+        if (db != null) {
+            try {
+                val snapshot = db.collection("registrations").get().await()
+                val userList = snapshot.documents.filter { doc ->
+                    val rId = doc.getString("residentId") ?: doc.getString("userId") ?: ""
+                    rId == userId
+                }.map { doc ->
+                    val rawStatus = doc.getString("status") ?: "Pending"
+                    val rawAttendance = doc.getString("attendanceStatus") ?: "pending"
+                    val timestamp = doc.getTimestamp("registeredAt")?.toDate()?.time ?: System.currentTimeMillis()
+                    Registration(
+                        id = doc.id,
+                        programId = doc.getString("programId") ?: "",
+                        programTitle = doc.getString("programTitle") ?: "",
+                        programCategory = doc.getString("programCategory") ?: "Civic",
+                        programVenue = doc.getString("programVenue") ?: "Barangay Lapasan Multi-Purpose Hall",
+                        programDateTime = doc.getString("programDateTime") ?: "",
+                        userId = userId,
+                        residentName = doc.getString("residentName") ?: "",
+                        residentPhone = doc.getString("residentPhone") ?: doc.getString("phone") ?: "",
+                        residentPurok = doc.getString("residentPurok") ?: doc.getString("purok") ?: "",
+                        registeredAt = timestamp,
+                        status = rawStatus,
+                        attendanceStatus = rawAttendance
+                    )
+                }
+                localRegistrations.removeAll { it.userId == userId }
+                localRegistrations.addAll(userList)
+            } catch (_: Exception) {}
+        }
+        return localRegistrations.filter { it.userId == userId }
     }
 
     suspend fun registerForProgram(program: Program, user: User): Resource<Registration> {
-        // 1. Check if program has available slots
         if (program.isFull) {
             return Resource.Error("Sorry, this program is currently full (0 slots available).")
         }
 
-        // 2. Check if already registered
+        // Check if already registered
         val existing = localRegistrations.find {
-            it.programId == program.id && it.userId == user.uid && it.status == Registration.STATUS_CONFIRMED
+            it.programId == program.id && it.userId == user.uid && it.isActive
         }
         if (existing != null) {
             return Resource.Error("You are already registered for this program.")
@@ -145,7 +84,7 @@ class RegistrationRepository(
             residentPhone = user.phone,
             residentPurok = user.purok,
             registeredAt = System.currentTimeMillis(),
-            status = Registration.STATUS_CONFIRMED,
+            status = Registration.STATUS_PENDING,
             attendanceStatus = Registration.ATTENDANCE_PENDING
         )
 
@@ -190,7 +129,7 @@ class RegistrationRepository(
         firestore?.let { db ->
             try {
                 db.collection("registrations").document(registrationId)
-                    .update("status", Registration.STATUS_CANCELLED).await()
+                    .update("status", "Cancelled").await()
             } catch (_: Exception) {}
         }
 
@@ -199,31 +138,30 @@ class RegistrationRepository(
 
     fun getActiveRegistrations(userId: String): List<Registration> {
         return localRegistrations.filter {
-            it.userId == userId && it.status == Registration.STATUS_CONFIRMED &&
-                    (it.attendanceStatus == Registration.ATTENDANCE_PENDING || !it.programDateTime.contains("Sep ") && !it.programDateTime.contains("Aug "))
+            it.userId == userId && it.isActive && it.attendanceStatus == Registration.ATTENDANCE_PENDING
         }
     }
 
     fun getRegistrationHistory(userId: String): List<Registration> {
         return localRegistrations.filter {
             it.userId == userId &&
-                    (it.attendanceStatus != Registration.ATTENDANCE_PENDING || it.status == Registration.STATUS_CANCELLED || it.programDateTime.contains("Sep ") || it.programDateTime.contains("Aug "))
+            (it.attendanceStatus != Registration.ATTENDANCE_PENDING || it.status.lowercase() == "cancelled" || it.status.lowercase() == "rejected")
         }
     }
 
     fun getRegistrationsForProgram(programId: String): List<Registration> {
-        return localRegistrations.filter { it.programId == programId && it.status == Registration.STATUS_CONFIRMED }
+        return localRegistrations.filter { it.programId == programId && it.isActive }
     }
 
     fun isUserRegistered(programId: String, userId: String): Boolean {
         return localRegistrations.any {
-            it.programId == programId && it.userId == userId && it.status == Registration.STATUS_CONFIRMED
+            it.programId == programId && it.userId == userId && it.isActive
         }
     }
 
     fun getRegistration(programId: String, userId: String): Registration? {
         return localRegistrations.find {
-            it.programId == programId && it.userId == userId && it.status == Registration.STATUS_CONFIRMED
+            it.programId == programId && it.userId == userId && it.isActive
         }
     }
 

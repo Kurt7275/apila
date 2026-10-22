@@ -28,6 +28,11 @@
         <!-- Authentication Activities -->
 
         <activity
+            android:name=".ui.auth.GetStartedActivity"
+            android:theme="@style/Theme.Apila.Auth"
+            android:exported="false" />
+
+        <activity
             android:name=".ui.auth.LoginActivity"
             android:theme="@style/Theme.Apila.Auth"
             android:exported="false"

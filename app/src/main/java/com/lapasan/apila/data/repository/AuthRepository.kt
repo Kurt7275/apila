@@ -128,6 +128,16 @@ class AuthRepository {
                     address = address
                 )
                 db.collection("users").document(uid).set(newUser).await()
+                val residentDoc = hashMapOf(
+                    "name" to fullName,
+                    "email" to trimmedEmail,
+                    "phone" to phone,
+                    "purok" to purok,
+                    "address" to address,
+                    "isVerified" to false,
+                    "createdAt" to com.google.firebase.Timestamp.now()
+                )
+                db.collection("residents").document(uid).set(residentDoc).await()
                 currentUser = newUser
                 demoUsers[trimmedEmail] = newUser
                 return Resource.Success(newUser)

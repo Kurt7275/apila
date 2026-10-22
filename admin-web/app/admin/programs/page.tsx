@@ -209,20 +209,9 @@ export default function AdminProgramsPage() {
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F45113]/10 text-[#F45113] uppercase tracking-wider">
-              Module 02
-            </span>
-            <span className="text-xs text-[#64748B] font-semibold">
-              Community Program Lifecycle
-            </span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
-            Program Management
+            Programs
           </h1>
-          <p className="text-xs sm:text-sm text-[#64748B] mt-1">
-            Create, update, publish, and archive community programs. Published programs synchronize with resident mobile applications.
-          </p>
         </div>
 
         <button
@@ -230,7 +219,7 @@ export default function AdminProgramsPage() {
           className="flex items-center gap-2 px-5 py-2.5 bg-[#F45113] hover:bg-[#d4430e] text-white text-xs font-bold rounded-2xl shadow-md shadow-orange-500/20 transition-all cursor-pointer self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
-          <span>Create New Program</span>
+          <span>New Program</span>
         </button>
       </div>
 

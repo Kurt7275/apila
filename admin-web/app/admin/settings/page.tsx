@@ -91,11 +91,8 @@ export default function AdminSettingsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
-            System Settings & Profile
+            Settings
           </h1>
-          <p className="text-xs sm:text-sm text-[#64748B] mt-1">
-            Configure your administrative profile, official contact channels, and Barangay Lapasan portal settings.
-          </p>
         </div>
 
         {/* Tab Selector Pills */}

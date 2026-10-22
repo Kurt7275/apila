@@ -150,7 +150,6 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // ── Exact 5 Metrics required by Module 1 Specification ──
   // 1. Total registered residents
   const totalRegisteredResidents = residentsCount;
   // 2. Available programs (Active + Upcoming)
@@ -163,46 +162,12 @@ export default function AdminDashboardPage() {
   const pendingRegistrations = registrations.filter((r) => r.status === "Pending");
   // 5. Attendance summary
   const totalEnrolledAcrossPrograms = programsList.reduce((acc, p) => acc + p.enrolled, 0);
-  const avgAttendanceRate = 86;
+  const avgAttendanceRate = 0;
 
   // Recent Registrations (latest 5)
   const recentRegistrations = registrations.slice(0, 5);
 
-  // Important Updates & Advisories
-  const importantUpdates = [
-    {
-      id: "upd-1",
-      title: "Typhoon Preparedness Advisory & Evacuation Sites Ready",
-      category: "Emergency / DRRM",
-      time: "2 hours ago",
-      priority: "Urgent",
-      reach: "Sent to 4,820 Resident Mobile Apps",
-    },
-    {
-      id: "upd-2",
-      title: "Free Medical and Dental Checkup: Dental Hours Extended",
-      category: "Program Update",
-      time: "5 hours ago",
-      priority: "Important",
-      reach: "Sent to 147 Enrolled Residents",
-    },
-    {
-      id: "upd-3",
-      title: "Livelihood Training Batch 2 Orientation Tomorrow 8:00 AM",
-      category: "Schedule Notice",
-      time: "Yesterday",
-      priority: "Normal",
-      reach: "Sent to 28 Participants",
-    },
-    {
-      id: "upd-4",
-      title: "Barangay General Assembly 2026 Set for Sunday",
-      category: "General Advisory",
-      time: "2 days ago",
-      priority: "Normal",
-      reach: "Sent to Entire Barangay",
-    },
-  ];
+
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1500px] mx-auto selection:bg-[#F45113]/15 selection:text-[#F45113]">
@@ -210,20 +175,9 @@ export default function AdminDashboardPage() {
       {/* ── Top Header Bar ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F45113]/10 text-[#F45113] uppercase tracking-wider">
-              Module 01
-            </span>
-            <span className="text-xs text-[#64748B] font-semibold">
-              Barangay Lapasan Administrative Console
-            </span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
-            Dashboard Overview
+            Dashboard
           </h1>
-          <p className="text-xs sm:text-sm text-[#64748B] mt-0.5">
-            Monitor community programs, resident registrations, upcoming activities, and attendance records.
-          </p>
         </div>
 
         {/* Live Philippine Clock & Date */}
@@ -253,10 +207,10 @@ export default function AdminDashboardPage() {
             <Users className="w-4 h-4 text-[#F45113]" />
           </div>
           <p className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] group-hover:text-[#F45113] transition-colors">
-            1,248
+            {totalRegisteredResidents}
           </p>
           <p className="text-[11px] text-[#64748B] flex items-center justify-between">
-            <span>Barangay Lapasan</span>
+            <span>Residents</span>
             <span className="text-[#F45113] font-bold text-[10px]">View all &rarr;</span>
           </p>
         </Link>
@@ -352,9 +306,6 @@ export default function AdminDashboardPage() {
                 <h2 className="text-sm font-extrabold text-[#0F172A] tracking-tight">
                   Recent Registrations
                 </h2>
-                <p className="text-[11px] text-[#64748B] mt-0.5">
-                  Latest program sign-up submissions from the APILA resident mobile app.
-                </p>
               </div>
               <Link
                 href="/admin/registrations"
@@ -377,58 +328,66 @@ export default function AdminDashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#ECE7DF]">
-                  {recentRegistrations.map((reg) => (
-                    <tr key={reg.id} className="hover:bg-[#FFF9F3]/40 transition-colors">
-                      <td className="py-3 px-4">
-                        <p className="font-bold text-[#0F172A]">{reg.residentName}</p>
-                        <p className="text-[10px] text-[#94A3B8]">
-                          {new Date(reg.registeredAt).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            hour: "numeric",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                      </td>
-                      <td className="py-3 px-3 max-w-[180px]">
-                        <p className="font-semibold text-[#0F172A] truncate" title={reg.programTitle}>
-                          {reg.programTitle}
-                        </p>
-                      </td>
-                      <td className="py-3 px-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#FFF9F3] border border-[#ECE7DF] text-[#0F172A]">
-                          {reg.purok}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        <RegistrationStatusBadge status={reg.status} />
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        {reg.status === "Pending" ? (
-                          <div className="inline-flex items-center gap-1 justify-end">
-                            <button
-                              onClick={() => handleApprove(reg.id)}
-                              className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer"
-                              title="Approve Registration"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => handleReject(reg.id)}
-                              className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
-                              title="Reject Registration"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-[10px] font-medium text-[#94A3B8]">
-                            Processed
-                          </span>
-                        )}
+                  {recentRegistrations.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-10 text-center text-xs text-[#94A3B8]">
+                        No registrations yet
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    recentRegistrations.map((reg) => (
+                      <tr key={reg.id} className="hover:bg-[#FFF9F3]/40 transition-colors">
+                        <td className="py-3 px-4">
+                          <p className="font-bold text-[#0F172A]">{reg.residentName}</p>
+                          <p className="text-[10px] text-[#94A3B8]">
+                            {new Date(reg.registeredAt).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </td>
+                        <td className="py-3 px-3 max-w-[180px]">
+                          <p className="font-semibold text-[#0F172A] truncate" title={reg.programTitle}>
+                            {reg.programTitle}
+                          </p>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#FFF9F3] border border-[#ECE7DF] text-[#0F172A]">
+                            {reg.purok}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <RegistrationStatusBadge status={reg.status} />
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          {reg.status === "Pending" ? (
+                            <div className="inline-flex items-center gap-1 justify-end">
+                              <button
+                                onClick={() => handleApprove(reg.id)}
+                                className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer"
+                                title="Approve Registration"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => handleReject(reg.id)}
+                                className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
+                                title="Reject Registration"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] font-medium text-[#94A3B8]">
+                              Processed
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -439,11 +398,8 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-extrabold text-[#0F172A] tracking-tight">
-                  Available Community Programs
+                  Available Programs
                 </h2>
-                <p className="text-[11px] text-[#64748B] mt-0.5">
-                  Current active initiatives published to the APILA mobile application.
-                </p>
               </div>
               <Link
                 href="/admin/programs"
@@ -454,52 +410,58 @@ export default function AdminDashboardPage() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              {availablePrograms.slice(0, 4).map((p) => {
-                const percent = Math.min(100, Math.round((p.enrolled / p.slots) * 100));
-                return (
-                  <Link
-                    key={p.id}
-                    href={`/admin/programs/${p.id}`}
-                    className="p-4 rounded-2xl bg-[#FFF9F3] border border-[#ECE7DF] hover:border-[#F45113]/50 transition-all block space-y-2.5 group"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white text-[#F45113] border border-[#ECE7DF]">
-                        {p.category}
-                      </span>
-                      <ProgramStatusBadge status={p.status} />
-                    </div>
-
-                    <div>
-                      <h3 className="text-xs font-bold text-[#0F172A] group-hover:text-[#F45113] transition-colors line-clamp-1">
-                        {p.title}
-                      </h3>
-                      <p className="text-[10px] text-[#64748B] mt-0.5 line-clamp-1">
-                        {p.location}
-                      </p>
-                    </div>
-
-                    <div className="space-y-1 pt-1">
-                      <div className="flex items-center justify-between text-[10px] font-semibold text-[#64748B]">
-                        <span>Capacity: {p.enrolled} / {p.slots} slots</span>
-                        <span className="text-[#0F172A] font-bold">{percent}%</span>
+            {availablePrograms.length === 0 ? (
+              <div className="py-10 text-center text-xs text-[#94A3B8]">
+                No active programs
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {availablePrograms.slice(0, 4).map((p) => {
+                  const percent = Math.min(100, Math.round((p.enrolled / p.slots) * 100));
+                  return (
+                    <Link
+                      key={p.id}
+                      href={`/admin/programs/${p.id}`}
+                      className="p-4 rounded-2xl bg-[#FFF9F3] border border-[#ECE7DF] hover:border-[#F45113]/50 transition-all block space-y-2.5 group"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white text-[#F45113] border border-[#ECE7DF]">
+                          {p.category}
+                        </span>
+                        <ProgramStatusBadge status={p.status} />
                       </div>
-                      <div className="w-full bg-white h-1.5 rounded-full overflow-hidden border border-[#ECE7DF]">
-                        <div
-                          className="bg-[#F45113] h-full rounded-full transition-all"
-                          style={{ width: `${percent}%` }}
-                        />
+
+                      <div>
+                        <h3 className="text-xs font-bold text-[#0F172A] group-hover:text-[#F45113] transition-colors line-clamp-1">
+                          {p.title}
+                        </h3>
+                        <p className="text-[10px] text-[#64748B] mt-0.5 line-clamp-1">
+                          {p.location}
+                        </p>
                       </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
+
+                      <div className="space-y-1 pt-1">
+                        <div className="flex items-center justify-between text-[10px] font-semibold text-[#64748B]">
+                          <span>Capacity: {p.enrolled} / {p.slots} slots</span>
+                          <span className="text-[#0F172A] font-bold">{percent}%</span>
+                        </div>
+                        <div className="w-full bg-white h-1.5 rounded-full overflow-hidden border border-[#ECE7DF]">
+                          <div
+                            className="bg-[#F45113] h-full rounded-full transition-all"
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
         </div>
 
-        {/* ════ RIGHT COLUMN (5 cols): Upcoming Activities & Important Updates ════ */}
+        {/* ════ RIGHT COLUMN (5 cols): Upcoming Activities & Quick Broadcast ════ */}
         <div className="lg:col-span-5 space-y-6">
 
           {/* Section: Upcoming Activities */}
@@ -509,9 +471,6 @@ export default function AdminDashboardPage() {
                 <h2 className="text-sm font-extrabold text-[#0F172A] tracking-tight">
                   Upcoming Activities
                 </h2>
-                <p className="text-[11px] text-[#64748B] mt-0.5">
-                  Scheduled community events and program sessions.
-                </p>
               </div>
               <Link
                 href="/admin/programs"
@@ -521,101 +480,57 @@ export default function AdminDashboardPage() {
               </Link>
             </div>
 
-            <div className="space-y-3">
-              {upcomingActivities.map((act) => (
-                <div
-                  key={act.id}
-                  className="p-3.5 rounded-2xl bg-[#FFF9F3] border border-[#ECE7DF] space-y-1.5 hover:border-[#F45113]/40 transition-all"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs font-bold text-[#0F172A] leading-snug">
-                      {act.title}
+            {upcomingActivities.length === 0 ? (
+              <div className="py-10 text-center text-xs text-[#94A3B8]">
+                No upcoming activities
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {upcomingActivities.map((act) => (
+                  <div
+                    key={act.id}
+                    className="p-3.5 rounded-2xl bg-[#FFF9F3] border border-[#ECE7DF] space-y-1.5 hover:border-[#F45113]/40 transition-all"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-xs font-bold text-[#0F172A] leading-snug">
+                        {act.title}
+                      </p>
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-white text-[#F45113] border border-[#ECE7DF] flex-shrink-0">
+                        {act.category}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 text-[10px] text-[#64748B]">
+                      <span className="flex items-center gap-1 font-semibold text-[#0F172A]">
+                        <Clock className="w-3 h-3 text-[#F45113]" />
+                        {act.schedule.split(",")[0]}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-[#94A3B8]" />
+                        {act.location.split(",")[0]}
+                      </span>
+                    </div>
+
+                    <p className="text-[10px] text-[#94A3B8] pt-0.5">
+                      Lead Officer: <strong className="text-[#64748B]">{act.officer}</strong>
                     </p>
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-white text-[#F45113] border border-[#ECE7DF] flex-shrink-0">
-                      {act.category}
-                    </span>
                   </div>
-
-                  <div className="flex flex-wrap items-center gap-3 text-[10px] text-[#64748B]">
-                    <span className="flex items-center gap-1 font-semibold text-[#0F172A]">
-                      <Clock className="w-3 h-3 text-[#F45113]" />
-                      {act.schedule.split(",")[0]}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-[#94A3B8]" />
-                      {act.location.split(",")[0]}
-                    </span>
-                  </div>
-
-                  <p className="text-[10px] text-[#94A3B8] pt-0.5">
-                    Lead Officer: <strong className="text-[#64748B]">{act.officer}</strong>
-                  </p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Section: Important Updates & Advisories */}
-          <div className="bg-white rounded-3xl border border-[#ECE7DF] p-5 sm:p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-extrabold text-[#0F172A] tracking-tight">
-                  Important Updates
-                </h2>
-                <p className="text-[11px] text-[#64748B] mt-0.5">
-                  Advisories broadcasted to the APILA mobile application.
-                </p>
-              </div>
-              <Link
-                href="/admin/announcements"
-                className="text-xs font-bold text-[#F45113] hover:underline flex items-center gap-1"
-              >
-                <span>Broadcasts</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-
-            <div className="space-y-3">
-              {importantUpdates.map((item) => (
-                <div
-                  key={item.id}
-                  className="p-3.5 rounded-2xl bg-[#FFF9F3] border border-[#ECE7DF] space-y-1.5"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs font-bold text-[#0F172A] leading-snug">
-                      {item.title}
-                    </p>
-                    {item.priority === "Urgent" && (
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-700 border border-rose-200 flex-shrink-0">
-                        Urgent
-                      </span>
-                    )}
-                    {item.priority === "Important" && (
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex-shrink-0">
-                        Important
-                      </span>
-                    )}
-                    {item.priority === "Normal" && (
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 text-slate-700 border border-slate-200 flex-shrink-0">
-                        Regular
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-[10px] text-[#64748B] flex items-center justify-between">
-                    <span>{item.reach}</span>
-                    <span className="text-[#94A3B8] font-mono">{item.time}</span>
-                  </p>
-                </div>
-              ))}
-            </div>
-
+          {/* Quick Action Broadcast Card */}
+          <div className="bg-white rounded-3xl border border-[#ECE7DF] p-5 sm:p-6 shadow-sm space-y-3">
+            <h2 className="text-sm font-extrabold text-[#0F172A] tracking-tight">
+              Broadcast Advisory
+            </h2>
             <Link
               href="/admin/announcements"
-              className="w-full py-2.5 rounded-2xl bg-[#0F172A] hover:bg-black text-white text-xs font-bold transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-2xl bg-[#0F172A] hover:bg-black text-white text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
               <Bell className="w-3.5 h-3.5" />
-              <span>Create New Advisory Broadcast</span>
+              <span>Create Announcement</span>
             </Link>
           </div>
 

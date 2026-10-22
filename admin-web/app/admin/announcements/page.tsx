@@ -33,63 +33,7 @@ export interface BarangayAnnouncement {
   reachCount: number;
 }
 
-const INITIAL_ANNOUNCEMENTS: BarangayAnnouncement[] = [
-  {
-    id: "anc-001",
-    title: "Typhoon Preparedness Advisory & Evacuation Centers",
-    category: "Emergency / DRRM",
-    priority: "Urgent",
-    targetAudience: "All Residents (Purok 1 - 10)",
-    message: "In anticipation of Tropical Depression updates, Barangay Lapasan DRRM Council is on Blue Alert status. The Multi-Purpose Hall and Central Elementary School are pre-designated evacuation sites. Emergency hotlines are open 24/7.",
-    createdAt: "2026-10-18T08:30:00",
-    pushSent: true,
-    reachCount: 4820,
-  },
-  {
-    id: "anc-002",
-    title: "Schedule Adjustment: Free Medical & Dental Checkup",
-    category: "Program Update",
-    priority: "Important",
-    targetAudience: "Enrolled Program Participants",
-    message: "Please note that the dental consultation hours for this coming Saturday have been extended until 2:00 PM to accommodate additional priority senior citizens.",
-    createdAt: "2026-10-15T14:10:00",
-    pushSent: true,
-    reachCount: 200,
-  },
-  {
-    id: "anc-003",
-    title: "Barangay General Assembly & Townhall 2026",
-    category: "General Advisory",
-    priority: "Normal",
-    targetAudience: "All Residents",
-    message: "The 2nd Semester Barangay General Assembly will be held on Sunday at the Barangay Gymnasium. All household heads and registered voters are requested to attend.",
-    createdAt: "2026-10-10T11:00:00",
-    pushSent: true,
-    reachCount: 4820,
-  },
-  {
-    id: "anc-004",
-    title: "Bivalent Flu & Pneumonia Vaccination Drive for Seniors",
-    category: "Health Advisory",
-    priority: "Important",
-    targetAudience: "Senior Citizens (Purok 1 - 5)",
-    message: "Barangay Lapasan Health Center is rolling out free flu and pneumonia vaccines for seniors aged 60 and above. Bring your OSCA ID or Barangay Resident ID.",
-    createdAt: "2026-10-05T09:45:00",
-    pushSent: true,
-    reachCount: 650,
-  },
-  {
-    id: "anc-005",
-    title: "Community Coastal Clean-Up & Mangrove Planting",
-    category: "Community Service",
-    priority: "Normal",
-    targetAudience: "Youth & Environmental Volunteers",
-    message: "Join the Lapasan Youth Task Force this Saturday, 6:00 AM at the coastal perimeter. Gloves and garbage collection sacks will be provided at the assembly area.",
-    createdAt: "2026-09-28T16:00:00",
-    pushSent: true,
-    reachCount: 1240,
-  },
-];
+const INITIAL_ANNOUNCEMENTS: BarangayAnnouncement[] = [];
 
 export default function AdminAnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<BarangayAnnouncement[]>(INITIAL_ANNOUNCEMENTS);
@@ -231,18 +175,9 @@ export default function AdminAnnouncementsPage() {
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F45113]/10 text-[#F45113] uppercase tracking-wider">
-              Module 05
-            </span>
-            <span className="text-xs text-[#64748B] font-semibold">APILA Resident Broadcast</span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
-            Announcements & Notifications
+            Announcements
           </h1>
-          <p className="text-xs sm:text-sm text-[#64748B] mt-1">
-            Publish official advisories, schedule changes, and emergency alerts directly to resident mobile apps.
-          </p>
         </div>
 
         {/* Primary CTA */}
@@ -251,7 +186,7 @@ export default function AdminAnnouncementsPage() {
           className="flex items-center gap-2 px-5 py-2.5 bg-[#F45113] hover:bg-[#d4430e] text-white text-xs font-bold rounded-2xl shadow-md shadow-orange-500/20 transition-all cursor-pointer self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
-          <span>New Advisory Broadcast</span>
+          <span>New Broadcast</span>
         </button>
       </div>
 

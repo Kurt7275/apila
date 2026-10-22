@@ -25,7 +25,6 @@ const mainNavItems = [
     href: "/admin/registrations",
     label: "Registrations",
     icon: ClipboardCheck,
-    badge: 5,
   },
   { href: "/admin/attendance", label: "Attendance", icon: UserCheck },
   { href: "/admin/announcements", label: "Announcements", icon: Bell },
@@ -42,7 +41,7 @@ export default function AdminSidebar() {
   const { profile } = useAdminProfile();
 
   return (
-    <aside className="w-64 min-h-screen bg-white border-r border-[#ECE7DF] flex flex-col justify-between p-5 selection:bg-[#F45113]/15 selection:text-[#F45113] flex-shrink-0">
+    <aside className="w-64 h-screen sticky top-0 bg-white border-r border-[#ECE7DF] flex flex-col justify-between p-5 selection:bg-[#F45113]/15 selection:text-[#F45113] flex-shrink-0 overflow-y-auto">
       <div className="space-y-6">
         {/* Brand Header (Concept from reference: Clean grid icon + App name) */}
         <div className="flex items-center gap-3 px-2 py-1">
@@ -98,17 +97,6 @@ export default function AdminSidebar() {
                   <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-[#94A3B8]"}`} />
                   <span>{item.label}</span>
                 </div>
-                {item.badge && (
-                  <span
-                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                      isActive
-                        ? "bg-white text-[#F45113]"
-                        : "bg-[#F45113]/10 text-[#F45113]"
-                    }`}
-                  >
-                    {item.badge}
-                  </span>
-                )}
               </Link>
             );
           })}
