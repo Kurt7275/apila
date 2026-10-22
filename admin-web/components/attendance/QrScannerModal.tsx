@@ -240,6 +240,7 @@ export function QrScannerModal({
           <video
             ref={videoRef}
             className="w-full h-full object-cover"
+            style={{ transform: "scaleX(-1)" }}
             playsInline
             muted
           />
