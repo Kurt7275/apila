@@ -18,7 +18,10 @@ import {
   ChevronDown,
   BarChart3,
   ShieldCheck,
+  Scan,
+  QrCode,
 } from "lucide-react";
+import { QrScannerModal } from "@/components/attendance/QrScannerModal";
 import { mockPrograms } from "@/lib/mock-data/programs";
 import { mockRegistrations } from "@/lib/mock-data/registrations";
 import { mockResidents } from "@/lib/mock-data/residents";
@@ -63,6 +66,7 @@ export default function AdminAttendancePage() {
   const [statusFilter, setStatusFilter] = useState<"ALL" | "PRESENT" | "ABSENT" | "UNMARKED">("ALL");
   const [purokFilter, setPurokFilter] = useState<string>("ALL");
   const [exportNotice, setExportNotice] = useState<string | null>(null);
+  const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
 
   // Load from localStorage or initialize with realistic defaults
   useEffect(() => {
@@ -194,7 +198,14 @@ export default function AdminAttendancePage() {
         </div>
 
         {/* Global Controls */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+          <button
+            onClick={() => setIsQrScannerOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#F45113] hover:bg-[#D63D05] text-white text-xs font-bold rounded-2xl shadow-sm transition-all cursor-pointer"
+          >
+            <Scan className="w-3.5 h-3.5" />
+            <span>Scan QR Pass</span>
+          </button>
           <button
             onClick={handleExportCSV}
             className="flex items-center gap-2 px-4 py-2.5 bg-white border border-[#ECE7DF] hover:border-[#F45113]/50 text-xs font-bold text-[#0F172A] rounded-2xl shadow-sm transition-all cursor-pointer"
@@ -517,6 +528,16 @@ export default function AdminAttendancePage() {
           </div>
         </div>
       </div>
+
+      {/* QR Code Scanner & Check-In Modal */}
+      <QrScannerModal
+        isOpen={isQrScannerOpen}
+        onClose={() => setIsQrScannerOpen(false)}
+        programTitle={selectedProgram?.title || "Community Program"}
+        programRegistrations={programRegistrations}
+        attendanceMap={attendanceMap}
+        onMarkPresent={(regId) => handleMark(regId, "PRESENT")}
+      />
     </div>
   );
 }

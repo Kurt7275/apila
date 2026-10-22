@@ -182,6 +182,46 @@
                 android:textSize="12.5sp" />
         </LinearLayout>
 
+        <!-- QR Code Pass Section -->
+        <LinearLayout
+            android:id="@+id/layoutQrPass"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_countdown_box"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <ImageView
+                android:id="@+id/ivPassQrCode"
+                android:layout_width="160dp"
+                android:layout_height="160dp"
+                android:background="@color/white"
+                android:padding="4dp"
+                android:contentDescription="Pass QR Code" />
+
+            <TextView
+                android:id="@+id/tvQrInstruction"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="Present this QR Code to Barangay staff at venue"
+                android:textColor="#64748B"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvQrCodeString"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="monospace"
+                android:text="ID: reg_101"
+                android:textColor="#94A3B8"
+                android:textSize="10sp" />
+        </LinearLayout>
+
         <!-- Bottom row: reg date + cancel -->
         <LinearLayout
             android:layout_width="match_parent"
