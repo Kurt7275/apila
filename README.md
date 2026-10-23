@@ -167,65 +167,142 @@ Cloud Firestore
 
 ---
 
-## Setup & Deployment Guide
+## Setup & Quickstart Tutorial
 
-### 1. Cloning on a New Device
+Follow this step-by-step guide to run the complete **APILA** ecosystem (Admin Web Portal + Resident Android App) on any new machine.
+
+> [!NOTE]
+> **Zero Local Database Setup Required**: The entire backend is already hosted in the cloud on **Google Firebase (`apila-barangay`)**. Both the web portal and Android app connect to the same live database automatically.
+
+---
+
+### Prerequisites
+
+| Component | Required Software | Download Link |
+| :--- | :--- | :--- |
+| **Admin Web Portal** | Node.js (v18 or v20+) & `npm` | [nodejs.org](https://nodejs.org/) |
+| **Resident Mobile App** | Android Studio (Ladybug or newer) | [developer.android.com/studio](https://developer.android.com/studio) |
+| **Android Device (Optional)** | Any physical Android phone (Android 8.0+) or emulator | USB Cable or Android Studio Virtual Device |
+
+---
+
+### Step 1: Clone the Repository
+
+On your target computer, open your terminal (macOS/Linux) or Command Prompt / PowerShell (Windows):
 
 ```bash
 git clone https://github.com/Kurt7275/apila.git
 cd apila
 ```
 
-> **IMPORTANT**: `app/google-services.json` is protected by `.gitignore`. You must copy `google-services.json` into `apila/app/google-services.json` before building the Android app (either from this repository's owner or downloaded from the Firebase Console under `apila-barangay`).
+> `app/google-services.json` and web `firebaseConfig` are already included in the repository, so both clients are pre-configured to connect to the live backend out of the box.
 
-### 2. Running the Personnel Web Portal
+---
 
-```bash
-cd admin-web
-npm install
-npm run dev
-```
+### Step 2: Run the Barangay Personnel Portal (Admin Web)
 
-- Open `http://localhost:3000` in your browser.
-- Default Admin Credentials: `admin@lapasan.gov.ph` / `admin2026`.
-- *(Note: Firebase web credentials are pre-configured in `lib/firebase.ts`—no `.env` setup required).*
+1. Open a terminal and navigate to the `admin-web` folder:
+   ```bash
+   cd admin-web
+   ```
 
-### 3. Running the Resident Android App
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-1. Open the `apila` root directory in **Android Studio**.
-2. Let Gradle sync and download dependencies.
-3. Ensure `app/google-services.json` is present.
-4. Connect an Android device (via USB with USB debugging enabled) or start an emulator.
-5. Click **Run (Shift + F10)**.
+3. Launch the local development server:
+   ```bash
+   npm run dev
+   ```
 
-To compile a debug APK via terminal:
-```bash
-export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
-./gradlew assembleDebug
-# Generated APK: app/build/outputs/apk/debug/app-debug.apk
-```
+4. Open your browser and navigate to:
+   ```text
+   http://localhost:3000/admin/login
+   ```
 
-### 4. Firebase Console Configuration
+#### Default Administrator Login Credentials:
 
-Ensure the following two settings are configured in your [Firebase Console](https://console.firebase.google.com/) for the `apila-barangay` project:
+* **Official Email:** `admin@lapasan.gov.ph`
+* **Password:** `admin2026` (or `123456`)
+* **Role:** Primary System Owner / Head Admin
 
-1. **Authentication**:
-   - Go to **Build** &rarr; **Authentication** &rarr; **Sign-in method**.
-   - Enable **Email/Password**.
-2. **Cloud Firestore Rules**:
-   - Go to **Build** &rarr; **Firestore Database** &rarr; **Rules**.
-   - Set development rules:
-     ```javascript
-     rules_version = '2';
-     service cloud.firestore {
-       match /databases/{database}/documents {
-         match /{document=**} {
-           allow read, write: if true;
-         }
-       }
-     }
-     ```
-   - Click **Publish**.
+> **Tip:** You can click the **"Quick Demo Fill"** button on the login screen to automatically fill in the owner credentials.
+
+---
+
+### Step 3: Run the Resident Mobile App (Android)
+
+You have two simple options to run the mobile app:
+
+#### Option A: Open & Run in Android Studio (Recommended for Development)
+
+1. Launch **Android Studio**.
+2. Click **File &rarr; Open...** (or **Open** from the welcome screen) and select the root **`apila`** folder.
+3. Allow Gradle 1–2 minutes to download dependencies and sync the project.
+4. Start an Android Emulator from the **Device Manager** (or plug in a physical phone with USB Debugging enabled).
+5. Click the green **Run (▶)** button in the top toolbar (or press `Shift + F10`).
+6. The app will launch into the Onboarding / Welcome screen!
+
+#### Option B: Install the Standalone APK (No Coding / Instant on Any Phone)
+
+If you just want to run and test the app on a physical Android phone without setting up Android Studio:
+
+1. Locate the pre-built APK at:
+   ```text
+   app/build/outputs/apk/debug/app-debug.apk
+   ```
+2. Transfer this `.apk` file to your phone (via USB, Google Drive, AirDrop, or messaging).
+3. Tap the file on your phone and select **Install**.
+4. Open **APILA** — it connects to the live Firebase database immediately.
+
+---
+
+### Step 4: Provisioning Staff Admin Accounts (Owner Role)
+
+Regular residents cannot self-register an administrator account. Only the **Primary System Owner** can create new staff admins:
+
+1. Log in as the Owner at `http://localhost:3000/admin/login` (`admin@lapasan.gov.ph`).
+2. Go to **Settings &rarr; Admin Accounts** tab (`http://localhost:3000/admin/settings`).
+3. Fill in the **"Provision Admin Account"** form:
+   * **Officer Full Name** (e.g. `Ricardo Gomez`)
+   * **Officer Gmail / Email** (e.g. `ricardo.gomez@gmail.com`)
+   * **Role / Office** (e.g. `Program Officer`, `Barangay Secretary`, `Health Lead`)
+   * **Department / Division** (e.g. `Community Services Division`)
+   * **Initial Login Password** (minimum 6 characters)
+4. Click **Create Admin Account**.
+5. The new staff member can now immediately sign in at `http://localhost:3000/admin/login` using their assigned Gmail and password!
+
+---
+
+### Step 5: Testing Live Synchronization Between Devices
+
+To verify that both platforms are communicating in real time:
+
+1. **On Admin Web (`http://localhost:3000/admin/programs`)**: Click **+ Create Program** and publish a new initiative (e.g., *"Free Community Dental Checkup"*).
+2. **On Resident Android App**: Pull down to refresh the **Programs** tab — the new program will immediately appear in the feed.
+3. **On Resident App**: Tap the program and click **Register**.
+4. **On Admin Web (`http://localhost:3000/admin/registrations`)**: The resident's registration appears in real time in the approval queue!
+5. **On Admin Web**: Click **Approve**. The resident's pass instantly generates an active **QR Code** on mobile under the **Passes** tab.
+6. **On Admin Web (`http://localhost:3000/admin/attendance`)**: Open the **Camera QR Scanner** and scan the mobile QR pass to mark attendance with audio chime verification.
+
+---
+
+### Troubleshooting & FAQ
+
+* **Port 3000 already in use?**
+  Run `npm run dev -- -p 3001` to start the web portal on a different port.
+* **Android Studio: "Java runtime not found" or Gradle sync error?**
+  Ensure Android Studio's bundled JDK is selected in **Settings &rarr; Build, Execution, Deployment &rarr; Build Tools &rarr; Gradle &rarr; Gradle JDK** (set to version 17 or embedded JBR).
+* **Terminal APK Build Command**:
+  ```bash
+  # macOS / Linux
+  ./gradlew assembleDebug
+
+  # Windows PowerShell
+  .\gradlew.bat assembleDebug
+  ```
+  The compiled APK is placed in `app/build/outputs/apk/debug/app-debug.apk`.
 
 ---
 
