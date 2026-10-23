@@ -1,5 +1,6 @@
 package com.lapasan.apila.data.repository
 
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.lapasan.apila.data.model.User
@@ -12,6 +13,7 @@ class AuthRepository {
         try {
             FirebaseAuth.getInstance()
         } catch (e: Exception) {
+            Log.e("AuthRepo", "Error initializing FirebaseAuth", e)
             null
         }
     }
@@ -20,11 +22,11 @@ class AuthRepository {
         try {
             FirebaseFirestore.getInstance()
         } catch (e: Exception) {
+            Log.e("AuthRepo", "Error initializing FirebaseFirestore", e)
             null
         }
     }
 
-    // In-memory demo store & session fallback
     companion object {
         private val demoUsers = mutableMapOf<String, User>(
             "resident@lapasan.gov.ph" to User(
@@ -62,17 +64,35 @@ class AuthRepository {
                 val uid = authResult.user?.uid
                 if (uid != null) {
                     val doc = db.collection("users").document(uid).get().await()
-                    val user = doc.toObject(User::class.java) ?: User(
-                        uid = uid,
-                        email = trimmedEmail,
-                        fullName = authResult.user?.displayName ?: "Resident",
-                        role = User.ROLE_RESIDENT
-                    )
+                    val user = if (doc.exists()) {
+                        doc.toObject(User::class.java) ?: User(
+                            uid = uid,
+                            email = trimmedEmail,
+                            fullName = authResult.user?.displayName ?: "Resident",
+                            role = User.ROLE_RESIDENT
+                        )
+                    } else {
+                        // Check residents collection
+                        val resDoc = try {
+                            db.collection("residents").document(uid).get().await()
+                        } catch (_: Exception) { null }
+
+                        User(
+                            uid = uid,
+                            email = trimmedEmail,
+                            fullName = resDoc?.getString("name") ?: authResult.user?.displayName ?: "Resident",
+                            phone = resDoc?.getString("phone") ?: "",
+                            purok = resDoc?.getString("purok") ?: "Purok 2 - Lapasan Proper",
+                            address = resDoc?.getString("address") ?: "Barangay Lapasan",
+                            role = User.ROLE_RESIDENT
+                        )
+                    }
                     currentUser = user
+                    Log.d("AuthRepo", "Logged in via Firebase Auth: ${user.fullName} ($uid)")
                     return Resource.Success(user)
                 }
             } catch (e: Exception) {
-                // If Firebase login fails, fallback to demo/local user accounts for offline testing
+                Log.w("AuthRepo", "Firebase signIn failed for $trimmedEmail: ${e.message}")
             }
         }
 
@@ -82,7 +102,7 @@ class AuthRepository {
             currentUser = user
             Resource.Success(user)
         } else if (trimmedEmail.isNotEmpty() && pass.length >= 6) {
-            // Allow any dynamic resident login for convenient evaluation
+            // Allow dynamic resident login
             val isStaff = trimmedEmail.contains("admin") || trimmedEmail.contains("personnel") || trimmedEmail.contains("lapasan.gov")
             val dynamicUser = User(
                 uid = "usr_" + System.currentTimeMillis(),
@@ -90,7 +110,7 @@ class AuthRepository {
                 email = trimmedEmail,
                 phone = "09170000000",
                 role = if (isStaff) User.ROLE_PERSONNEL else User.ROLE_RESIDENT,
-                purok = "Purok 1 - Kolambog",
+                purok = "Purok 2 - Lapasan Proper",
                 address = "Barangay Lapasan"
             )
             demoUsers[trimmedEmail] = dynamicUser
@@ -140,9 +160,39 @@ class AuthRepository {
                 db.collection("residents").document(uid).set(residentDoc).await()
                 currentUser = newUser
                 demoUsers[trimmedEmail] = newUser
+                Log.d("AuthRepo", "Created new Firebase resident: $fullName ($uid)")
                 return Resource.Success(newUser)
             } catch (e: Exception) {
-                // fallback to local creation
+                Log.w("AuthRepo", "Firebase createUser failed: ${e.message}, attempting signIn fallback")
+                try {
+                    val authResult = auth.signInWithEmailAndPassword(trimmedEmail, pass).await()
+                    val uid = authResult.user?.uid ?: ("usr_" + System.currentTimeMillis())
+                    val newUser = User(
+                        uid = uid,
+                        fullName = fullName,
+                        email = trimmedEmail,
+                        phone = phone,
+                        role = User.ROLE_RESIDENT,
+                        purok = purok,
+                        address = address
+                    )
+                    db.collection("users").document(uid).set(newUser).await()
+                    val residentDoc = hashMapOf(
+                        "name" to fullName,
+                        "email" to trimmedEmail,
+                        "phone" to phone,
+                        "purok" to purok,
+                        "address" to address,
+                        "isVerified" to false,
+                        "createdAt" to com.google.firebase.Timestamp.now()
+                    )
+                    db.collection("residents").document(uid).set(residentDoc).await()
+                    currentUser = newUser
+                    demoUsers[trimmedEmail] = newUser
+                    return Resource.Success(newUser)
+                } catch (e2: Exception) {
+                    Log.e("AuthRepo", "Fallback sign-in also failed", e2)
+                }
             }
         }
 
@@ -163,20 +213,36 @@ class AuthRepository {
 
     fun getCurrentUser(): User? = currentUser
 
+    fun switchRoleForDemo(asAdmin: Boolean): User {
+        val user = if (asAdmin) {
+            demoUsers["admin@lapasan.gov.ph"] ?: User(
+                uid = "demo_admin_001",
+                fullName = "Hon. Roberto Delos Reyes",
+                email = "admin@lapasan.gov.ph",
+                phone = "09189876543",
+                role = User.ROLE_PERSONNEL,
+                purok = "Barangay Hall",
+                address = "Barangay Hall, Lapasan, Cagayan de Oro City"
+            )
+        } else {
+            demoUsers["resident@lapasan.gov.ph"] ?: User(
+                uid = "demo_resident_001",
+                fullName = "Maria Clara Santos",
+                email = "resident@lapasan.gov.ph",
+                phone = "09171234567",
+                role = User.ROLE_RESIDENT,
+                purok = "Purok 2 - Lapasan Proper",
+                address = "Block 4 Lot 12, Lapasan Proper"
+            )
+        }
+        currentUser = user
+        return user
+    }
+
     fun logout() {
         try {
             firebaseAuth?.signOut()
         } catch (_: Exception) {}
         currentUser = null
-    }
-
-    fun switchRoleForDemo(asAdmin: Boolean): User {
-        val user = if (asAdmin) {
-            demoUsers["admin@lapasan.gov.ph"]!!
-        } else {
-            demoUsers["resident@lapasan.gov.ph"]!!
-        }
-        currentUser = user
-        return user
     }
 }

@@ -5,6 +5,7 @@ import { mockResidents } from "@/lib/mock-data/residents";
 import { mockRegistrations } from "@/lib/mock-data/registrations";
 import { Resident } from "@/types";
 import { getResidents, toggleResidentVerification } from "@/lib/services/residents";
+import { getRegistrations } from "@/lib/services/registrations";
 import {
   Search,
   Download,
@@ -25,7 +26,8 @@ import {
 } from "lucide-react";
 
 export default function AdminResidentsPage() {
-  const [residents, setResidents] = useState<Resident[]>(mockResidents);
+  const [residents, setResidents] = useState<Resident[]>([]);
+  const [liveRegistrations, setLiveRegistrations] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [purokFilter, setPurokFilter] = useState("ALL");
   const [verificationFilter, setVerificationFilter] = useState<"ALL" | "VERIFIED" | "PENDING">("ALL");
@@ -37,39 +39,52 @@ export default function AdminResidentsPage() {
     async function fetchLiveResidents() {
       try {
         const live = await getResidents();
-        if (live && live.length > 0) {
-          const mapped: Resident[] = live.map((r) => {
-            const parts = (r.name || "").trim().split(" ");
-            const firstName = parts[0] || "Resident";
-            const lastName = parts.slice(1).join(" ") || "";
-            return {
-              id: r.id || `res-${Date.now()}`,
-              firstName,
-              lastName,
-              email: r.email || "",
-              phone: r.phone || "",
-              purok: r.purok || "Purok 1",
-              street: r.address || `${r.purok}, Barangay Lapasan`,
-              householdId: r.householdId || "HH-001",
-              birthdate: r.birthdate || "1990-01-01",
-              sex: ((r.gender === "Male" ? "Male" : "Female") as Resident["sex"]),
-              civilStatus: (r.civilStatus as Resident["civilStatus"]) || "Single",
-              isVerified: r.isVerified ?? false,
-              registeredAt: r.createdAt ? new Date(r.createdAt.seconds * 1000).toISOString() : new Date().toISOString(),
-            };
-          });
-          setResidents(mapped);
-        }
+        const mapped: Resident[] = live.map((r) => {
+          const parts = (r.name || "").trim().split(" ");
+          const firstName = parts[0] || "Resident";
+          const lastName = parts.slice(1).join(" ") || "";
+          return {
+            id: r.id || `res-${Date.now()}`,
+            firstName,
+            lastName,
+            email: r.email || "",
+            phone: r.phone || "",
+            purok: r.purok || "Purok 1",
+            street: r.address || `${r.purok}, Barangay Lapasan`,
+            householdId: r.householdId || "HH-001",
+            birthdate: r.birthdate || "1990-01-01",
+            sex: ((r.gender === "Male" ? "Male" : "Female") as Resident["sex"]),
+            civilStatus: (r.civilStatus as Resident["civilStatus"]) || "Single",
+            isVerified: r.isVerified ?? false,
+            registeredAt: r.createdAt ? new Date(r.createdAt.seconds * 1000).toISOString() : new Date().toISOString(),
+          };
+        });
+        setResidents(mapped);
       } catch (err) {
         console.warn("Using offline residents cache:", err);
       }
     }
+    async function fetchLiveRegistrations() {
+      try {
+        const live = await getRegistrations();
+        if (live && live.length > 0) {
+          setLiveRegistrations(live);
+        }
+      } catch (err) {
+        console.warn("Using offline registrations cache:", err);
+      }
+    }
     fetchLiveResidents();
+    fetchLiveRegistrations();
   }, []);
 
   const getRegistrationsForResident = (residentId: string) => {
-    return mockRegistrations.filter(
-      (r) => r.residentId === residentId || r.residentName.toLowerCase() === `${selectedResident?.firstName} ${selectedResident?.lastName}`.toLowerCase()
+    const fullName = `${selectedResident?.firstName} ${selectedResident?.lastName}`.toLowerCase();
+    const source = liveRegistrations.length > 0 ? liveRegistrations : mockRegistrations;
+    return source.filter(
+      (r) =>
+        r.residentId === residentId ||
+        r.residentName?.toLowerCase() === fullName
     );
   };
 

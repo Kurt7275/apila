@@ -36,9 +36,9 @@ export default function AdminDashboardPage() {
   const { profile } = useAdminProfile();
 
   // State populated from Firestore with fallback to mock
-  const [programsList, setProgramsList] = useState<Program[]>(mockPrograms);
-  const [registrations, setRegistrations] = useState<Registration[]>(mockRegistrations);
-  const [residentsCount, setResidentsCount] = useState<number>(mockResidents.length);
+  const [programsList, setProgramsList] = useState<Program[]>([]);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [residentsCount, setResidentsCount] = useState<number>(0);
 
   // Digital Clock & Date
   const [currentDate, setCurrentDate] = useState({
@@ -55,7 +55,7 @@ export default function AdminDashboardPage() {
           getResidents(),
         ]);
 
-        if (livePrograms.status === "fulfilled" && livePrograms.value.length > 0) {
+        if (livePrograms.status === "fulfilled") {
           const mappedProgs: Program[] = livePrograms.value.map((p) => ({
             id: p.id || `prog-${Date.now()}`,
             title: p.title,
@@ -76,7 +76,7 @@ export default function AdminDashboardPage() {
           setProgramsList(mappedProgs);
         }
 
-        if (liveRegs.status === "fulfilled" && liveRegs.value.length > 0) {
+        if (liveRegs.status === "fulfilled") {
           const mappedRegs: Registration[] = liveRegs.value.map((r) => ({
             id: r.id || `reg-${Date.now()}`,
             residentId: r.residentId || "res-001",
@@ -91,11 +91,14 @@ export default function AdminDashboardPage() {
           setRegistrations(mappedRegs);
         }
 
-        if (liveRes.status === "fulfilled" && liveRes.value.length > 0) {
+        if (liveRes.status === "fulfilled") {
           setResidentsCount(liveRes.value.length);
         }
       } catch (err) {
         console.warn("Using offline dashboard fallback:", err);
+        setProgramsList(mockPrograms);
+        setRegistrations(mockRegistrations);
+        setResidentsCount(mockResidents.length);
       }
     }
     fetchDashboardData();

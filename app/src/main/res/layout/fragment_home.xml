@@ -40,7 +40,7 @@
                         android:id="@+id/tvWelcomeResident"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Maayong Adlaw, Maria!"
+                        android:text="Maayong Adlaw!"
                         android:textColor="#0F172A"
                         android:textSize="24sp"
                         android:textStyle="bold"
@@ -51,7 +51,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="3dp"
-                        android:text="Purok 2 • Lapasan Proper • Registered Resident"
+                        android:text="Barangay Lapasan • Registered Resident"
                         android:textColor="#64748B"
                         android:textSize="12.5sp" />
                 </LinearLayout>
@@ -131,7 +131,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="10dp"
-                            android:text="1"
+                            android:text="0"
                             android:textColor="#0F172A"
                             android:textSize="28sp"
                             android:textStyle="bold"
@@ -207,7 +207,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="10dp"
-                            android:text="5"
+                            android:text="0"
                             android:textColor="#0F172A"
                             android:textSize="28sp"
                             android:textStyle="bold"
@@ -254,14 +254,18 @@
                 android:scrollbars="none">
 
                 <LinearLayout
+                    android:id="@+id/layoutCivicSectors"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
 
                     <TextView
+                        android:id="@+id/chipSectorAll"
                         android:layout_width="wrap_content"
                         android:layout_height="36dp"
                         android:background="@drawable/bg_pill_button_orange"
+                        android:clickable="true"
+                        android:focusable="true"
                         android:gravity="center"
                         android:paddingStart="16dp"
                         android:paddingEnd="16dp"
@@ -271,10 +275,13 @@
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/chipSectorHealth"
                         android:layout_width="wrap_content"
                         android:layout_height="36dp"
                         android:layout_marginStart="8dp"
                         android:background="@drawable/bg_pill_button_outline"
+                        android:clickable="true"
+                        android:focusable="true"
                         android:gravity="center"
                         android:paddingStart="16dp"
                         android:paddingEnd="16dp"
@@ -284,10 +291,13 @@
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/chipSectorLivelihood"
                         android:layout_width="wrap_content"
                         android:layout_height="36dp"
                         android:layout_marginStart="8dp"
                         android:background="@drawable/bg_pill_button_outline"
+                        android:clickable="true"
+                        android:focusable="true"
                         android:gravity="center"
                         android:paddingStart="16dp"
                         android:paddingEnd="16dp"
@@ -297,10 +307,13 @@
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/chipSectorDRRM"
                         android:layout_width="wrap_content"
                         android:layout_height="36dp"
                         android:layout_marginStart="8dp"
                         android:background="@drawable/bg_pill_button_outline"
+                        android:clickable="true"
+                        android:focusable="true"
                         android:gravity="center"
                         android:paddingStart="16dp"
                         android:paddingEnd="16dp"
@@ -310,14 +323,49 @@
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/chipSectorYouth"
                         android:layout_width="wrap_content"
                         android:layout_height="36dp"
                         android:layout_marginStart="8dp"
                         android:background="@drawable/bg_pill_button_outline"
+                        android:clickable="true"
+                        android:focusable="true"
                         android:gravity="center"
                         android:paddingStart="16dp"
                         android:paddingEnd="16dp"
                         android:text="Youth &amp; Sports"
+                        android:textColor="#0F172A"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/chipSectorSeniors"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_pill_button_outline"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="Senior Citizens"
+                        android:textColor="#0F172A"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/chipSectorEducation"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_pill_button_outline"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="Education"
                         android:textColor="#0F172A"
                         android:textSize="12sp"
                         android:textStyle="bold" />
@@ -329,9 +377,11 @@
                  (Direct Concept from Reference Screen 1)
                  ══════════════════════════════════════════ -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardUpcomingSchedule"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
+                android:visibility="gone"
                 app:cardCornerRadius="26dp"
                 app:cardElevation="0dp"
                 app:strokeWidth="1.2dp"
@@ -369,20 +419,22 @@
                     </LinearLayout>
 
                     <TextView
+                        android:id="@+id/tvBannerProgramTitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Community Clean-Up Drive: Coastal Area"
+                        android:text="Upcoming Program"
                         android:textColor="#0F172A"
                         android:textSize="16sp"
                         android:textStyle="bold"
                         android:letterSpacing="-0.01" />
 
                     <TextView
+                        android:id="@+id/tvBannerProgramVenue"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="3dp"
-                        android:text="Barangay Lapasan Multi-Purpose Complex • 7:00 AM"
+                        android:text="Barangay Lapasan Multi-Purpose Complex"
                         android:textColor="#64748B"
                         android:textSize="12sp" />
 
@@ -404,9 +456,10 @@
                             android:orientation="vertical">
 
                             <TextView
+                                android:id="@+id/tvCountdownDays"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="03"
+                                android:text="00"
                                 android:textColor="#0F172A"
                                 android:textSize="18sp"
                                 android:textStyle="bold" />
@@ -431,9 +484,10 @@
                             android:orientation="vertical">
 
                             <TextView
+                                android:id="@+id/tvCountdownHours"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="15"
+                                android:text="00"
                                 android:textColor="#0F172A"
                                 android:textSize="18sp"
                                 android:textStyle="bold" />
@@ -458,9 +512,10 @@
                             android:orientation="vertical">
 
                             <TextView
+                                android:id="@+id/tvCountdownMin"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="42"
+                                android:text="00"
                                 android:textColor="#0F172A"
                                 android:textSize="18sp"
                                 android:textStyle="bold" />
@@ -485,9 +540,10 @@
                             android:orientation="vertical">
 
                             <TextView
+                                android:id="@+id/tvCountdownSec"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="58"
+                                android:text="00"
                                 android:textColor="@color/brand_orange"
                                 android:textSize="18sp"
                                 android:textStyle="bold" />
@@ -578,6 +634,19 @@
                 android:layout_marginTop="10dp"
                 android:nestedScrollingEnabled="false" />
 
+            <TextView
+                android:id="@+id/tvEmptyFeaturedHome"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_detail_info_card"
+                android:gravity="center"
+                android:padding="20dp"
+                android:text="No upcoming initiatives scheduled yet."
+                android:textColor="#94A3B8"
+                android:textSize="12.5sp"
+                android:visibility="gone" />
+
             <!-- ══════════════════════════════════════════
                  OFFICIAL ADVISORIES LIST
                  ══════════════════════════════════════════ -->
@@ -615,6 +684,19 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:nestedScrollingEnabled="false" />
+
+            <TextView
+                android:id="@+id/tvEmptyAnnouncementsHome"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_detail_info_card"
+                android:gravity="center"
+                android:padding="20dp"
+                android:text="No official advisories posted yet."
+                android:textColor="#94A3B8"
+                android:textSize="12.5sp"
+                android:visibility="gone" />
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

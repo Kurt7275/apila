@@ -18,6 +18,7 @@ class ProfileFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val authViewModel: AuthViewModel by activityViewModels()
+    private val residentViewModel: ResidentViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -32,7 +33,11 @@ class ProfileFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         populateUserData()
+        observeActivePrograms()
         setupListeners()
+
+        // Trigger live load of active registrations
+        residentViewModel.loadMyPrograms()
     }
 
     private fun populateUserData() {
@@ -43,6 +48,7 @@ class ProfileFragment : Fragment() {
             binding.tvProfilePurok.text = user.purok.ifBlank { "Barangay Lapasan" }
             binding.tvProfilePhone.text = user.phone.ifBlank { "N/A" }
             binding.tvProfileAddress.text = user.address.ifBlank { "Barangay Lapasan, Cagayan de Oro City" }
+            binding.tvProfileResidentId.text = "ID #${user.uid.takeLast(6).uppercase()}"
 
             if (user.isPersonnel) {
                 binding.tvProfileRoleBadge.text = "Barangay Lapasan Personnel"
@@ -56,7 +62,22 @@ class ProfileFragment : Fragment() {
         }
     }
 
+    private fun observeActivePrograms() {
+        residentViewModel.activeRegistrations.observe(viewLifecycleOwner) { registrations ->
+            val count = registrations?.size ?: 0
+            binding.tvRegisteredProgramCount.text = when (count) {
+                0 -> "No Active Programs"
+                1 -> "1 Active Program"
+                else -> "$count Active Programs"
+            }
+        }
+    }
+
     private fun setupListeners() {
+        binding.layoutRegisteredPrograms.setOnClickListener {
+            (activity as? ResidentMainActivity)?.selectTab(2)
+        }
+
         binding.btnLogout.setOnClickListener {
             MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Sign Out")

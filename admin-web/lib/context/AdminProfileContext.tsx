@@ -11,17 +11,19 @@ export interface AdminProfile {
   jurisdiction: string;
   initials: string;
   status: string;
+  isOwner?: boolean;
 }
 
 const DEFAULT_PROFILE: AdminProfile = {
-  name: "Maria Santos",
-  role: "Barangay Secretary",
-  email: "maria.santos@lapasan.gov.ph",
+  name: "Barangay Admin",
+  role: "System Owner / Head Admin",
+  email: "admin@lapasan.gov.ph",
   phone: "+63 917 123 4567",
-  office: "Office of the Barangay Secretary",
+  office: "Office of the Punong Barangay / Owner",
   jurisdiction: "Barangay Lapasan, Cagayan de Oro City",
-  initials: "MS",
+  initials: "AD",
   status: "Active Session",
+  isOwner: true,
 };
 
 interface AdminProfileContextType {
@@ -42,7 +44,13 @@ export function AdminProfileProvider({ children }: { children: React.ReactNode }
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        setProfile(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        if (parsed.name === "Maria Santos") {
+          setProfile(DEFAULT_PROFILE);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_PROFILE));
+        } else {
+          setProfile(parsed);
+        }
       }
     } catch {
       // Fallback to default if localStorage is unavailable

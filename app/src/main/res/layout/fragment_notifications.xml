@@ -105,7 +105,8 @@
                 android:paddingStart="20dp"
                 android:paddingTop="8dp"
                 android:paddingEnd="20dp"
-                android:paddingBottom="24dp" />
+                android:paddingBottom="24dp"
+                android:visibility="gone" />
 
             <!-- ── EMPTY STATE ── -->
             <LinearLayout
@@ -116,7 +117,7 @@
                 android:gravity="center"
                 android:orientation="vertical"
                 android:padding="32dp"
-                android:visibility="gone">
+                android:visibility="visible">
 
                 <ImageView
                     android:layout_width="64dp"

@@ -86,11 +86,12 @@
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/tvProfileResidentId"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:background="@drawable/bg_profile_id_chip"
                         android:letterSpacing="0.05"
-                        android:text="ID #BL-2026-0842"
+                        android:text="ID #RESIDENT"
                         android:textColor="@color/text_secondary"
                         android:textSize="10sp"
                         android:textStyle="bold" />
@@ -133,7 +134,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:text="Maria Clara Santos"
+                        android:text="Resident Name"
                         android:textColor="@color/text_primary"
                         android:textSize="19sp"
                         android:textStyle="bold" />
@@ -143,7 +144,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="resident@lapasan.gov.ph"
+                        android:text="resident@domain.com"
                         android:textColor="@color/text_secondary"
                         android:textSize="13sp" />
 
@@ -164,7 +165,7 @@
                     android:layout_height="1dp"
                     android:background="#ECE7DF" />
 
-                <!-- Footer: District & Verification status -->
+                <!-- Footer: District & Program count strip -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -184,13 +185,29 @@
                         android:textColor="@color/text_tertiary"
                         android:textSize="11sp" />
 
-                    <TextView
+                    <LinearLayout
+                        android:id="@+id/layoutRegisteredPrograms"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Active Registered Voter"
-                        android:textColor="@color/brand_orange"
-                        android:textSize="11sp"
-                        android:textStyle="bold" />
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="12dp"
+                            android:layout_height="12dp"
+                            android:src="@drawable/ic_programs"
+                            app:tint="@color/brand_orange" />
+
+                        <TextView
+                            android:id="@+id/tvRegisteredProgramCount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:text="0 Active Programs"
+                            android:textColor="@color/brand_orange"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
                 </LinearLayout>
 
             </LinearLayout>
@@ -283,7 +300,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="1dp"
-                            android:text="Purok 2 - Lapasan Proper"
+                            android:text="Barangay Lapasan"
                             android:textColor="@color/text_primary"
                             android:textSize="13.5sp"
                             android:textStyle="bold" />
@@ -335,7 +352,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="1dp"
-                            android:text="Block 4 Lot 12, Lapasan Proper, CDO"
+                            android:text="Lapasan, Cagayan de Oro City"
                             android:textColor="@color/text_primary"
                             android:textSize="13.5sp"
                             android:textStyle="bold" />
@@ -387,7 +404,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="1dp"
-                            android:text="0917 123 4567"
+                            android:text="N/A"
                             android:textColor="@color/text_primary"
                             android:textSize="13.5sp"
                             android:textStyle="bold" />

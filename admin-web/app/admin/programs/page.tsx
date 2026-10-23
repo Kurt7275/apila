@@ -33,26 +33,24 @@ export default function AdminProgramsPage() {
     async function fetchLivePrograms() {
       try {
         const live = await getPrograms();
-        if (live && live.length > 0) {
-          const mapped: Program[] = live.map((p) => ({
-            id: p.id || `prog-${Date.now()}`,
-            title: p.title,
-            category: (p.category as ProgramCategory) || "Health",
-            description: p.description || "",
-            schedule: p.schedule || "",
-            location: p.location || "Barangay Lapasan Multi-Purpose Hall",
-            slots: Number(p.slots) || 100,
-            enrolled: Number(p.enrolledCount) || 0,
-            status: (p.status as ProgramStatus) || "Active",
-            officer: p.officer || "Barangay Officer",
-            benefits: ["Official barangay certificate", "Community program coverage"],
-            requirements: ["Barangay Lapasan Resident ID"],
-            startDate: p.schedule || new Date().toISOString().split("T")[0],
-            endDate: p.registrationDeadline || "2026-11-15",
-            tags: [p.category ? p.category.toLowerCase() : "civic"],
-          }));
-          setPrograms(mapped);
-        }
+        const mapped: Program[] = live.map((p) => ({
+          id: p.id || `prog-${Date.now()}`,
+          title: p.title,
+          category: (p.category as ProgramCategory) || "Health",
+          description: p.description || "",
+          schedule: p.schedule || "",
+          location: p.location || "Barangay Lapasan Multi-Purpose Hall",
+          slots: Number(p.slots) || 100,
+          enrolled: Number(p.enrolledCount) || 0,
+          status: (p.status as ProgramStatus) || "Active",
+          officer: p.officer || "Barangay Officer",
+          benefits: ["Official barangay certificate", "Community program coverage"],
+          requirements: ["Barangay Lapasan Resident ID"],
+          startDate: p.schedule || new Date().toISOString().split("T")[0],
+          endDate: p.registrationDeadline || "2026-11-15",
+          tags: [p.category ? p.category.toLowerCase() : "civic"],
+        }));
+        setPrograms(mapped);
       } catch (err) {
         console.warn("Using offline programs cache:", err);
       }

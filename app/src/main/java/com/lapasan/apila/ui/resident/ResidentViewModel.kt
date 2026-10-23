@@ -40,6 +40,8 @@ class ResidentViewModel(
     private val _cancelAction = MutableLiveData<Resource<Boolean>?>()
     val cancelAction: LiveData<Resource<Boolean>?> = _cancelAction
 
+    var pendingCategoryFilter: String? = null
+
     val currentUser: User?
         get() = authRepository.getCurrentUser()
 

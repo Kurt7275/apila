@@ -174,7 +174,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Showing all programs"
+            android:text="Showing 0 programs"
             android:textColor="@color/text_secondary"
             android:textSize="12sp" />
 
@@ -207,7 +207,8 @@
                 android:paddingStart="20dp"
                 android:paddingTop="4dp"
                 android:paddingEnd="20dp"
-                android:paddingBottom="24dp" />
+                android:paddingBottom="24dp"
+                android:visibility="gone" />
 
             <!-- Empty State -->
             <LinearLayout
@@ -218,7 +219,7 @@
                 android:gravity="center"
                 android:orientation="vertical"
                 android:padding="24dp"
-                android:visibility="gone">
+                android:visibility="visible">
 
                 <ImageView
                     android:layout_width="48dp"

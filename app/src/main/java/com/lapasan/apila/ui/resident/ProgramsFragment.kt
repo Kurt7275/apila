@@ -42,6 +42,20 @@ class ProgramsFragment : Fragment() {
 
         setupRecyclerView()
         setupFilters()
+
+        residentViewModel.pendingCategoryFilter?.let { filter ->
+            residentViewModel.pendingCategoryFilter = null
+            when {
+                filter.contains("Health", true) -> binding.chipHealth.isChecked = true
+                filter.contains("Youth", true) || filter.contains("Sports", true) -> binding.chipSports.isChecked = true
+                filter.contains("Livelihood", true) || filter.contains("TESDA", true) || filter.contains("Skills", true) -> binding.chipLivelihood.isChecked = true
+                filter.contains("Senior", true) -> binding.chipSeniors.isChecked = true
+                filter.contains("DRRM", true) || filter.contains("Disaster", true) || filter.contains("Calamity", true) -> binding.chipDisaster.isChecked = true
+                filter.contains("Education", true) -> binding.chipEducation.isChecked = true
+                else -> binding.chipAll.isChecked = true
+            }
+        }
+
         observeViewModel()
         fetchFilteredPrograms()
     }

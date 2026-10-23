@@ -40,6 +40,7 @@ export default function AdminAnnouncementsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [priorityFilter, setPriorityFilter] = useState<string>("ALL");
+  const [registeredUserCount, setRegisteredUserCount] = useState<number>(0);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -67,21 +68,40 @@ export default function AdminAnnouncementsPage() {
     async function fetchLiveAnnouncements() {
       try {
         const live = await getAnnouncements();
-        if (live && live.length > 0) {
-          const mapped: BarangayAnnouncement[] = live.map((a) => ({
-            id: a.id || `anc-${Date.now()}`,
-            title: a.title,
-            category: (a.category as BarangayAnnouncement["category"]) || "General Advisory",
-            priority: (a.priority as BarangayAnnouncement["priority"]) || "Normal",
-            targetAudience: a.targetAudience || "All Residents",
-            message: a.message,
-            createdAt: a.createdAt ? new Date(a.createdAt.seconds * 1000).toISOString() : new Date().toISOString(),
-            pushSent: a.pushNotification ?? true,
-            reachCount: a.targetAudience?.includes("All") ? 4820 : 350,
-          }));
-          setAnnouncements(mapped);
-          return;
+
+        // Fetch real registered user count from Firestore
+        let userCount = 0;
+        try {
+          const { collection: col, getDocs: gd } = await import("firebase/firestore");
+          const { db: firedb } = await import("@/lib/firebase");
+          const usersSnap = await gd(col(firedb, "users"));
+          userCount = usersSnap.size;
+          setRegisteredUserCount(userCount);
+        } catch {
+          // fallback: count registrations uniquely
+          try {
+            const { collection: col, getDocs: gd } = await import("firebase/firestore");
+            const { db: firedb } = await import("@/lib/firebase");
+            const regsSnap = await gd(col(firedb, "registrations"));
+            const uniqueUsers = new Set(regsSnap.docs.map((d) => d.data().residentId || d.data().userId)).size;
+            userCount = uniqueUsers;
+            setRegisteredUserCount(uniqueUsers);
+          } catch {}
         }
+
+        const mapped: BarangayAnnouncement[] = live.map((a) => ({
+          id: a.id || `anc-${Date.now()}`,
+          title: a.title,
+          category: (a.category as BarangayAnnouncement["category"]) || "General Advisory",
+          priority: (a.priority as BarangayAnnouncement["priority"]) || "Normal",
+          targetAudience: a.targetAudience || "All Residents",
+          message: a.message,
+          createdAt: a.createdAt ? new Date(a.createdAt.seconds * 1000).toISOString() : new Date().toISOString(),
+          pushSent: a.pushNotification ?? true,
+          reachCount: a.targetAudience?.includes("All") ? userCount : Math.round(userCount * 0.3),
+        }));
+        setAnnouncements(mapped);
+        return;
       } catch (err) {
         console.warn("Using offline announcements cache:", err);
       }
@@ -129,7 +149,7 @@ export default function AdminAnnouncementsPage() {
       message: formData.message.trim(),
       createdAt: new Date().toISOString(),
       pushSent: formData.pushNotification,
-      reachCount: formData.targetAudience.includes("All") ? 4820 : 350,
+      reachCount: formData.targetAudience.includes("All") ? registeredUserCount : Math.round(registeredUserCount * 0.3),
     };
 
     const updated = [newAnnouncement, ...announcements];
@@ -223,8 +243,8 @@ export default function AdminAnnouncementsPage() {
             <span className="font-bold uppercase tracking-wider text-[11px]">Mobile App Reach</span>
             <Smartphone className="w-4 h-4 text-[#F45113]" />
           </div>
-          <p className="text-3xl font-extrabold text-[#0F172A]">4,820</p>
-          <p className="text-[11px] text-[#64748B]">Active resident smartphones</p>
+          <p className="text-3xl font-extrabold text-[#0F172A]">{registeredUserCount.toLocaleString()}</p>
+          <p className="text-[11px] text-[#64748B]">Registered resident accounts</p>
         </div>
 
         {/* Urgent Alerts */}

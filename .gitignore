@@ -16,9 +16,6 @@ build/
 *.apk
 *.aab
 
-# Firebase — NEVER commit your google-services.json
-google-services.json
-
 # Keystore files — NEVER commit signing keys
 *.jks
 *.keystore

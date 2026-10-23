@@ -1,5 +1,6 @@
 package com.lapasan.apila.data.repository
 
+import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import com.lapasan.apila.data.model.Program
 import com.lapasan.apila.util.Resource
@@ -11,12 +12,13 @@ class ProgramRepository {
         try {
             FirebaseFirestore.getInstance()
         } catch (e: Exception) {
+            Log.e("ProgramRepo", "Error initializing Firestore", e)
             null
         }
     }
 
     companion object {
-        // Clean dynamic cache — no hardcoded sample data
+        // Dynamic cache — populated live from Firestore
         val localPrograms = mutableListOf<Program>()
     }
 
@@ -40,14 +42,23 @@ class ProgramRepository {
                         "cancelled" -> Program.STATUS_CANCELLED
                         else -> Program.STATUS_PUBLISHED
                     }
+                    val rawSchedule = doc.getString("schedule") ?: doc.getString("startDate") ?: ""
+                    val datePart = if (rawSchedule.contains("T")) rawSchedule.split("T")[0] else rawSchedule
+                    val timePart = if (rawSchedule.contains("T")) {
+                        val t = rawSchedule.split("T").getOrNull(1)?.take(5)
+                        if (!t.isNullOrBlank()) t else "08:00 AM"
+                    } else {
+                        doc.getString("startTime") ?: "08:00 AM"
+                    }
+
                     Program(
                         id = doc.id,
                         title = doc.getString("title") ?: "",
                         category = doc.getString("category") ?: "Civic",
                         description = doc.getString("description") ?: "",
                         venue = doc.getString("location") ?: doc.getString("venue") ?: "Barangay Lapasan Multi-Purpose Hall",
-                        startDate = doc.getString("schedule") ?: doc.getString("startDate") ?: "",
-                        startTime = doc.getString("startTime") ?: "08:00 AM",
+                        startDate = datePart,
+                        startTime = timePart,
                         endDate = doc.getString("registrationDeadline") ?: doc.getString("endDate") ?: "",
                         endTime = doc.getString("endTime") ?: "05:00 PM",
                         registrationDeadline = doc.getString("registrationDeadline") ?: "",
@@ -59,7 +70,10 @@ class ProgramRepository {
                 }
                 localPrograms.clear()
                 localPrograms.addAll(firestoreList)
-            } catch (_: Exception) {}
+                Log.d("ProgramRepo", "Successfully loaded ${firestoreList.size} live programs from Firestore")
+            } catch (e: Exception) {
+                Log.e("ProgramRepo", "Error fetching live programs from Firestore", e)
+            }
         }
 
         var result = localPrograms.toList()
@@ -118,28 +132,15 @@ class ProgramRepository {
                     "slots" to finalProgram.maxCapacity,
                     "enrolledCount" to finalProgram.registeredCount,
                     "status" to "Active",
-                    "officer" to finalProgram.createdBy
+                    "updatedAt" to com.google.firebase.Timestamp.now()
                 )
                 db.collection("programs").document(finalProgram.id).set(data).await()
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                Log.e("ProgramRepo", "Error saving program to Firestore", e)
+            }
         }
 
         return Resource.Success(finalProgram)
-    }
-
-    suspend fun updateProgramStatus(programId: String, newStatus: String): Resource<Boolean> {
-        val index = localPrograms.indexOfFirst { it.id == programId }
-        if (index >= 0) {
-            val updated = localPrograms[index].copy(status = newStatus)
-            localPrograms[index] = updated
-            firestore?.let { db ->
-                try {
-                    db.collection("programs").document(programId).update("status", newStatus).await()
-                } catch (_: Exception) {}
-            }
-            return Resource.Success(true)
-        }
-        return Resource.Error("Program not found")
     }
 
     fun adjustRegistrationCount(programId: String, delta: Int) {
@@ -148,12 +149,6 @@ class ProgramRepository {
             val p = localPrograms[index]
             val newCount = (p.registeredCount + delta).coerceIn(0, p.maxCapacity)
             localPrograms[index] = p.copy(registeredCount = newCount)
-            firestore?.let { db ->
-                db.collection("programs").document(programId).update(
-                    "enrolledCount", newCount,
-                    "registeredCount", newCount
-                )
-            }
         }
     }
 }

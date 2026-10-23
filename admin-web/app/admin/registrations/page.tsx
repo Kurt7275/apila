@@ -5,6 +5,7 @@ import { mockRegistrations } from "@/lib/mock-data/registrations";
 import { mockPrograms } from "@/lib/mock-data/programs";
 import { Registration, RegistrationStatus } from "@/types";
 import { getRegistrations, updateRegistrationStatus } from "@/lib/services/registrations";
+import { getPrograms, Program } from "@/lib/services/programs";
 import {
   Search,
   Download,
@@ -21,7 +22,8 @@ import {
 import { RegistrationStatusBadge } from "@/components/shared/StatusBadges";
 
 export default function AdminRegistrationsPage() {
-  const [registrations, setRegistrations] = useState<Registration[]>(mockRegistrations);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [livePrograms, setLivePrograms] = useState<Program[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [purokFilter, setPurokFilter] = useState<string>("ALL");
@@ -31,25 +33,34 @@ export default function AdminRegistrationsPage() {
     async function fetchLiveRegistrations() {
       try {
         const live = await getRegistrations();
-        if (live && live.length > 0) {
-          const mapped: Registration[] = live.map((r) => ({
-            id: r.id || `reg-${Date.now()}`,
-            residentId: r.residentId || "res-001",
-            residentName: r.residentName || "Resident",
-            programId: r.programId || "prog-001",
-            programTitle: r.programTitle || "Community Program",
-            purok: r.purok || "Purok 1",
-            phone: r.phone || "09170000000",
-            status: (r.status as RegistrationStatus) || "Pending",
-            registeredAt: r.registeredAt ? new Date(r.registeredAt.seconds * 1000).toISOString() : new Date().toISOString(),
-          }));
-          setRegistrations(mapped);
-        }
+        const mapped: Registration[] = live.map((r) => ({
+          id: r.id || `reg-${Date.now()}`,
+          residentId: r.residentId || "res-001",
+          residentName: r.residentName || "Resident",
+          programId: r.programId || "prog-001",
+          programTitle: r.programTitle || "Community Program",
+          purok: r.purok || "Purok 1",
+          phone: r.phone || "09170000000",
+          status: (r.status as RegistrationStatus) || "Pending",
+          registeredAt: r.registeredAt ? new Date(r.registeredAt.seconds * 1000).toISOString() : new Date().toISOString(),
+        }));
+        setRegistrations(mapped);
       } catch (err) {
         console.warn("Using offline registrations cache:", err);
       }
     }
+    async function fetchLivePrograms() {
+      try {
+        const programs = await getPrograms();
+        if (programs && programs.length > 0) {
+          setLivePrograms(programs);
+        }
+      } catch (err) {
+        console.warn("Using offline programs cache:", err);
+      }
+    }
     fetchLiveRegistrations();
+    fetchLivePrograms();
   }, []);
 
   const approve = async (id: string) => {
@@ -84,9 +95,14 @@ export default function AdminRegistrationsPage() {
     }
   };
 
-  // Program slots lookup map
-  const programSlotsMap = mockPrograms.reduce((acc, p) => {
-    acc[p.id] = { slots: p.slots, enrolled: p.enrolled, title: p.title };
+  // Program slots lookup map – prefer live Firestore programs, fall back to mock
+  const programSourceList = livePrograms.length > 0 ? livePrograms : mockPrograms;
+  const programSlotsMap = programSourceList.reduce((acc, p) => {
+    acc[p.id!] = {
+      slots: (p as any).slots ?? 100,
+      enrolled: (p as any).enrolledCount ?? (p as any).enrolled ?? 0,
+      title: p.title,
+    };
     return acc;
   }, {} as Record<string, { slots: number; enrolled: number; title: string }>);
 

@@ -1,5 +1,7 @@
 package com.lapasan.apila.data.repository
 
+import android.util.Log
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.lapasan.apila.data.model.Program
 import com.lapasan.apila.data.model.Registration
@@ -15,12 +17,13 @@ class RegistrationRepository(
         try {
             FirebaseFirestore.getInstance()
         } catch (e: Exception) {
+            Log.e("RegistrationRepo", "Error initializing Firestore", e)
             null
         }
     }
 
     companion object {
-        // Clean dynamic cache — no hardcoded sample registrations
+        // Dynamic cache — populated live from Firestore
         val localRegistrations = mutableListOf<Registration>()
     }
 
@@ -28,17 +31,35 @@ class RegistrationRepository(
         val db = firestore
         if (db != null) {
             try {
+                // Fetch attendance records for this user if any (for instant pass attendance status)
+                val attendanceMap = try {
+                    val attendanceSnapshot = db.collection("attendance")
+                        .whereEqualTo("residentId", userId)
+                        .get()
+                        .await()
+                    attendanceSnapshot.documents.associate {
+                        (it.getString("programId") ?: "") to (it.getString("status")?.lowercase() ?: "pending")
+                    }
+                } catch (e: Exception) {
+                    Log.w("RegistrationRepo", "Could not fetch attendance records: ${e.message}")
+                    emptyMap()
+                }
+
                 val snapshot = db.collection("registrations").get().await()
                 val userList = snapshot.documents.filter { doc ->
                     val rId = doc.getString("residentId") ?: doc.getString("userId") ?: ""
                     rId == userId
                 }.map { doc ->
                     val rawStatus = doc.getString("status") ?: "Pending"
-                    val rawAttendance = doc.getString("attendanceStatus") ?: "pending"
+                    var rawAttendance = doc.getString("attendanceStatus")?.lowercase() ?: "pending"
+                    val pId = doc.getString("programId") ?: ""
+                    if (rawAttendance == "pending" && attendanceMap.containsKey(pId)) {
+                        rawAttendance = attendanceMap[pId] ?: "pending"
+                    }
                     val timestamp = doc.getTimestamp("registeredAt")?.toDate()?.time ?: System.currentTimeMillis()
                     Registration(
                         id = doc.id,
-                        programId = doc.getString("programId") ?: "",
+                        programId = pId,
                         programTitle = doc.getString("programTitle") ?: "",
                         programCategory = doc.getString("programCategory") ?: "Civic",
                         programVenue = doc.getString("programVenue") ?: "Barangay Lapasan Multi-Purpose Hall",
@@ -54,7 +75,10 @@ class RegistrationRepository(
                 }
                 localRegistrations.removeAll { it.userId == userId }
                 localRegistrations.addAll(userList)
-            } catch (_: Exception) {}
+                Log.d("RegistrationRepo", "Successfully fetched ${userList.size} registrations for user $userId")
+            } catch (e: Exception) {
+                Log.e("RegistrationRepo", "Error fetching registrations from Firestore", e)
+            }
         }
         return localRegistrations.filter { it.userId == userId }
     }
@@ -112,7 +136,15 @@ class RegistrationRepository(
                     "registeredAt" to com.google.firebase.Timestamp.now()
                 )
                 db.collection("registrations").document(newReg.id).set(firestoreData).await()
-            } catch (_: Exception) {}
+                
+                // Live update: increment enrolled count in programs collection
+                db.collection("programs").document(program.id)
+                    .update("enrolledCount", FieldValue.increment(1))
+                    .await()
+                Log.d("RegistrationRepo", "Registration ${newReg.id} recorded live to Firestore")
+            } catch (e: Exception) {
+                Log.e("RegistrationRepo", "Error recording registration live to Firestore", e)
+            }
         }
 
         return Resource.Success(newReg)
@@ -130,7 +162,13 @@ class RegistrationRepository(
             try {
                 db.collection("registrations").document(registrationId)
                     .update("status", "Cancelled").await()
-            } catch (_: Exception) {}
+                db.collection("programs").document(reg.programId)
+                    .update("enrolledCount", FieldValue.increment(-1))
+                    .await()
+                Log.d("RegistrationRepo", "Registration $registrationId cancelled live in Firestore")
+            } catch (e: Exception) {
+                Log.e("RegistrationRepo", "Error cancelling registration in Firestore", e)
+            }
         }
 
         return Resource.Success(true)
@@ -138,46 +176,19 @@ class RegistrationRepository(
 
     fun getActiveRegistrations(userId: String): List<Registration> {
         return localRegistrations.filter {
-            it.userId == userId && it.isActive && it.attendanceStatus == Registration.ATTENDANCE_PENDING
+            it.userId == userId && it.isActive
         }
-    }
-
-    fun getRegistrationHistory(userId: String): List<Registration> {
-        return localRegistrations.filter {
-            it.userId == userId &&
-            (it.attendanceStatus != Registration.ATTENDANCE_PENDING || it.status.lowercase() == "cancelled" || it.status.lowercase() == "rejected")
-        }
-    }
-
-    fun getRegistrationsForProgram(programId: String): List<Registration> {
-        return localRegistrations.filter { it.programId == programId && it.isActive }
     }
 
     fun isUserRegistered(programId: String, userId: String): Boolean {
-        return localRegistrations.any {
-            it.programId == programId && it.userId == userId && it.isActive
-        }
+        return localRegistrations.any { it.programId == programId && it.userId == userId && it.isActive }
     }
 
     fun getRegistration(programId: String, userId: String): Registration? {
-        return localRegistrations.find {
-            it.programId == programId && it.userId == userId && it.isActive
-        }
+        return localRegistrations.find { it.programId == programId && it.userId == userId && it.isActive }
     }
 
-    suspend fun updateAttendance(registrationId: String, newStatus: String): Resource<Boolean> {
-        val index = localRegistrations.indexOfFirst { it.id == registrationId }
-        if (index >= 0) {
-            val reg = localRegistrations[index].copy(attendanceStatus = newStatus)
-            localRegistrations[index] = reg
-            firestore?.let { db ->
-                try {
-                    db.collection("registrations").document(registrationId)
-                        .update("attendanceStatus", newStatus).await()
-                } catch (_: Exception) {}
-            }
-            return Resource.Success(true)
-        }
-        return Resource.Error("Registration not found")
+    fun getRegistrationHistory(userId: String): List<Registration> {
+        return localRegistrations.filter { it.userId == userId }
     }
 }
