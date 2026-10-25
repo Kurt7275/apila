@@ -12,10 +12,16 @@ import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.lapasan.apila.R
 import com.lapasan.apila.data.model.Program
+import com.lapasan.apila.data.model.Registration
 import com.lapasan.apila.databinding.FragmentHomeBinding
 import com.lapasan.apila.ui.common.AnnouncementAdapter
 import com.lapasan.apila.ui.common.ProgramAdapter
 import com.lapasan.apila.util.Resource
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.concurrent.TimeUnit
 
 class HomeFragment : Fragment() {
 
@@ -28,6 +34,7 @@ class HomeFragment : Fragment() {
     private var countdownTimer: android.os.CountDownTimer? = null
     private var upcomingProgram: Program? = null
     private var allPrograms: List<Program> = emptyList()
+    private var myRegistrations: List<Registration> = emptyList()
     private var selectedCategory: String? = null
 
     override fun onCreateView(
@@ -73,13 +80,17 @@ class HomeFragment : Fragment() {
         }
 
         binding.btnBannerMyPrograms.setOnClickListener {
-            upcomingProgram?.let { prog ->
-                val intent = Intent(requireContext(), ProgramDetailActivity::class.java).apply {
-                    putExtra(ProgramDetailActivity.EXTRA_PROGRAM, prog)
+            if (myRegistrations.isNotEmpty()) {
+                (activity as? ResidentMainActivity)?.navigateToTab(R.id.nav_my_programs)
+            } else {
+                upcomingProgram?.let { prog ->
+                    val intent = Intent(requireContext(), ProgramDetailActivity::class.java).apply {
+                        putExtra(ProgramDetailActivity.EXTRA_PROGRAM, prog)
+                    }
+                    startActivity(intent)
+                } ?: run {
+                    (activity as? ResidentMainActivity)?.navigateToTab(R.id.nav_programs)
                 }
-                startActivity(intent)
-            } ?: run {
-                (activity as? ResidentMainActivity)?.navigateToTab(R.id.nav_programs)
             }
         }
 
@@ -192,28 +203,15 @@ class HomeFragment : Fragment() {
                 val list = resource.data ?: emptyList()
                 allPrograms = list
                 binding.tvAvailableProgramsCount.text = list.count { it.isRegistrationOpen }.toString()
-
-                if (list.isEmpty()) {
-                    countdownTimer?.cancel()
-                    upcomingProgram = null
-                    binding.cardUpcomingSchedule.visibility = View.GONE
-                    binding.rvFeaturedPrograms.visibility = View.GONE
-                    binding.tvEmptyFeaturedHome.visibility = View.VISIBLE
-                    binding.tvEmptyFeaturedHome.text = "No upcoming initiatives scheduled yet."
-                } else {
-                    val upcoming = list.first()
-                    upcomingProgram = upcoming
-                    binding.cardUpcomingSchedule.visibility = View.VISIBLE
-                    binding.tvBannerProgramTitle.text = upcoming.title
-                    binding.tvBannerProgramVenue.text = "${upcoming.venue} • ${upcoming.startTime}"
-                    startCountdown(upcoming.startDate, upcoming.startTime)
-                    applySectorFilter()
-                }
+                updateUpcomingScheduleBanner()
+                applySectorFilter()
             }
         }
 
         residentViewModel.activeRegistrations.observe(viewLifecycleOwner) { activeList ->
+            myRegistrations = activeList
             binding.tvActiveRegistrationsCount.text = activeList.size.toString()
+            updateUpcomingScheduleBanner()
         }
 
         residentViewModel.announcements.observe(viewLifecycleOwner) { resource ->
@@ -231,33 +229,158 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun startCountdown(dateStr: String, timeStr: String) {
-        countdownTimer?.cancel()
-        val formats = listOf(
-            java.text.SimpleDateFormat("yyyy-MM-dd hh:mm a", java.util.Locale.US),
-            java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.US),
-            java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US),
-            java.text.SimpleDateFormat("MMM dd, yyyy hh:mm a", java.util.Locale.US),
-            java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.US)
+    private fun updateUpcomingScheduleBanner() {
+        val now = System.currentTimeMillis()
+
+        // ══════════════════════════════════════════════════════════════════
+        // PRIORITY 1: Resident has registered passes ("My Passes")
+        // ══════════════════════════════════════════════════════════════════
+        if (myRegistrations.isNotEmpty()) {
+            val candidatePasses = myRegistrations.map { reg ->
+                val matchingProg = allPrograms.find { it.id == reg.programId }
+                val targetMs = parseScheduleToEpochMs(
+                    matchingProg?.startDate ?: reg.programDateTime,
+                    matchingProg?.startTime ?: "",
+                    matchingProg?.registrationDeadline
+                )
+                Triple(reg, matchingProg, targetMs)
+            }
+
+            // Find nearest upcoming pass in future, or closest one
+            val nearestPass = candidatePasses
+                .filter { (it.third ?: 0L) > now }
+                .minByOrNull { it.third!! }
+                ?: candidatePasses.firstOrNull()
+
+            if (nearestPass != null) {
+                val (reg, prog, targetMs) = nearestPass
+                upcomingProgram = prog
+                binding.cardUpcomingSchedule.visibility = View.VISIBLE
+                binding.tvUpcomingScheduleBadge.text = "YOUR REGISTERED PASS"
+                binding.tvBannerProgramTitle.text = reg.programTitle
+                val venue = prog?.venue?.ifBlank { null } ?: reg.programVenue.ifBlank { "Barangay Lapasan Multi-Purpose Hall" }
+                val timeStr = prog?.startTime?.ifBlank { null } ?: reg.programDateTime
+                binding.tvBannerProgramVenue.text = "$venue • $timeStr"
+                binding.btnBannerMyPrograms.text = "View Digital Pass"
+
+                val finalTargetMs = if (targetMs != null && targetMs > now) {
+                    targetMs
+                } else {
+                    parseScheduleToEpochMs(reg.programDateTime, "", null) ?: (now + 86400000L)
+                }
+                startCountdownWithTargetMs(finalTargetMs)
+                return
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // PRIORITY 2: Fallback when resident has NO registered passes
+        // Show nearest open civic initiative in Barangay Lapasan
+        // ══════════════════════════════════════════════════════════════════
+        if (allPrograms.isNotEmpty()) {
+            val candidatePrograms = allPrograms.map { prog ->
+                val targetMs = parseScheduleToEpochMs(prog.startDate, prog.startTime, prog.registrationDeadline)
+                Pair(prog, targetMs)
+            }
+
+            val nearestProgram = candidatePrograms
+                .filter { it.first.isRegistrationOpen && (it.second ?: 0L) > now }
+                .minByOrNull { it.second!! }
+                ?.first
+                ?: allPrograms.firstOrNull { it.isRegistrationOpen }
+                ?: allPrograms.first()
+
+            upcomingProgram = nearestProgram
+            binding.cardUpcomingSchedule.visibility = View.VISIBLE
+            binding.tvUpcomingScheduleBadge.text = "FEATURED CIVIC INITIATIVE"
+            binding.tvBannerProgramTitle.text = nearestProgram.title
+            binding.tvBannerProgramVenue.text = "${nearestProgram.venue} • ${nearestProgram.startTime}"
+            binding.btnBannerMyPrograms.text = "My Passes"
+
+            val targetMs = parseScheduleToEpochMs(nearestProgram.startDate, nearestProgram.startTime, nearestProgram.registrationDeadline)
+            val finalTargetMs = if (targetMs != null && targetMs > now) {
+                targetMs
+            } else {
+                parseScheduleToEpochMs(nearestProgram.startDate, nearestProgram.startTime, null) ?: (now + 86400000L * 3)
+            }
+            startCountdownWithTargetMs(finalTargetMs)
+        } else {
+            // ══════════════════════════════════════════════════════════════════
+            // PRIORITY 3: No programs in barangay at all -> Hide banner cleanly
+            // ══════════════════════════════════════════════════════════════════
+            countdownTimer?.cancel()
+            upcomingProgram = null
+            binding.cardUpcomingSchedule.visibility = View.GONE
+        }
+    }
+
+    private fun parseScheduleToEpochMs(dateStr: String?, timeStr: String?, deadlineStr: String? = null): Long? {
+        val rawDate = dateStr?.trim().orEmpty()
+        val rawTime = timeStr?.trim().orEmpty()
+        val combined = "$rawDate $rawTime".trim()
+
+        // 1. Day of the week check (e.g., "Saturdays, 8:00 AM", "Sundays", "Wednesday")
+        val daysMap = mapOf(
+            "sun" to Calendar.SUNDAY,
+            "mon" to Calendar.MONDAY,
+            "tue" to Calendar.TUESDAY,
+            "wed" to Calendar.WEDNESDAY,
+            "thu" to Calendar.THURSDAY,
+            "fri" to Calendar.FRIDAY,
+            "sat" to Calendar.SATURDAY
         )
-        var targetDate: java.util.Date? = null
-        val combined = "$dateStr $timeStr".trim()
+        for ((key, dayOfWeek) in daysMap) {
+            if (rawDate.contains(key, ignoreCase = true) || combined.contains(key, ignoreCase = true)) {
+                val cal = Calendar.getInstance()
+                cal.set(Calendar.HOUR_OF_DAY, 8)
+                cal.set(Calendar.MINUTE, 0)
+                cal.set(Calendar.SECOND, 0)
+                cal.set(Calendar.MILLISECOND, 0)
+                while (cal.get(Calendar.DAY_OF_WEEK) != dayOfWeek || cal.timeInMillis <= System.currentTimeMillis()) {
+                    cal.add(Calendar.DAY_OF_YEAR, 1)
+                }
+                return cal.timeInMillis
+            }
+        }
+
+        // 2. Standard Date Formats
+        val formats = listOf(
+            SimpleDateFormat("yyyy-MM-dd hh:mm a", Locale.US),
+            SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US),
+            SimpleDateFormat("yyyy-MM-dd", Locale.US),
+            SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.US),
+            SimpleDateFormat("MMM dd, yyyy", Locale.US)
+        )
+
         for (format in formats) {
             try {
-                targetDate = format.parse(combined)
-                if (targetDate != null) break
+                val parsed = format.parse(combined)
+                if (parsed != null && parsed.time > 0) return parsed.time
             } catch (_: Exception) {}
         }
-        if (targetDate == null) {
+
+        for (format in formats) {
+            try {
+                val parsed = format.parse(rawDate)
+                if (parsed != null && parsed.time > 0) return parsed.time
+            } catch (_: Exception) {}
+        }
+
+        // 3. Fallback to registrationDeadline (e.g., "2026-10-30")
+        if (!deadlineStr.isNullOrBlank()) {
             for (format in formats) {
                 try {
-                    targetDate = format.parse(dateStr)
-                    if (targetDate != null) break
+                    val parsed = format.parse(deadlineStr.trim())
+                    if (parsed != null && parsed.time > 0) return parsed.time
                 } catch (_: Exception) {}
             }
         }
 
-        val targetMs = targetDate?.time ?: return
+        return null
+    }
+
+    private fun startCountdownWithTargetMs(targetMs: Long) {
+        countdownTimer?.cancel()
         val remainingMs = targetMs - System.currentTimeMillis()
         if (remainingMs <= 0) {
             binding.tvCountdownDays.text = "00"
@@ -269,10 +392,10 @@ class HomeFragment : Fragment() {
 
         countdownTimer = object : android.os.CountDownTimer(remainingMs, 1000) {
             override fun onTick(millisUntilFinished: Long) {
-                val days = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(millisUntilFinished)
-                val hours = java.util.concurrent.TimeUnit.MILLISECONDS.toHours(millisUntilFinished) % 24
-                val minutes = java.util.concurrent.TimeUnit.MILLISECONDS.toMinutes(millisUntilFinished) % 60
-                val seconds = java.util.concurrent.TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) % 60
+                val days = TimeUnit.MILLISECONDS.toDays(millisUntilFinished)
+                val hours = TimeUnit.MILLISECONDS.toHours(millisUntilFinished) % 24
+                val minutes = TimeUnit.MILLISECONDS.toMinutes(millisUntilFinished) % 60
+                val seconds = TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) % 60
 
                 binding.tvCountdownDays.text = String.format("%02d", days)
                 binding.tvCountdownHours.text = String.format("%02d", hours)
