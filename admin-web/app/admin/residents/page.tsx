@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { mockResidents } from "@/lib/mock-data/residents";
-import { mockRegistrations } from "@/lib/mock-data/registrations";
 import { Resident } from "@/types";
 import {
   getResidents,
@@ -192,7 +190,7 @@ export default function AdminResidentsPage() {
 
   const getRegistrationsForResident = (residentId: string) => {
     const fullName = `${selectedResident?.firstName} ${selectedResident?.lastName}`.toLowerCase();
-    const source = liveRegistrations.length > 0 ? liveRegistrations : mockRegistrations;
+    const source = liveRegistrations;
     return source.filter(
       (r) =>
         r.residentId === residentId ||

@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { mockRegistrations } from "@/lib/mock-data/registrations";
-import { mockPrograms } from "@/lib/mock-data/programs";
 import { Registration, RegistrationStatus } from "@/types";
 import {
   getRegistrations,
@@ -67,8 +65,8 @@ export default function AdminRegistrationsPage() {
     };
   }, []);
 
-  // Program slots lookup map – prefer live Firestore programs, fall back to mock
-  const programSourceList = livePrograms.length > 0 ? livePrograms : mockPrograms;
+  // Program slots lookup map from live Firestore programs
+  const programSourceList = livePrograms;
   const programSlotsMap = programSourceList.reduce((acc, p) => {
     acc[p.id!] = {
       slots: (p as any).slots ?? (p as any).maxCapacity ?? 100,

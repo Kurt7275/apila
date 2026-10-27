@@ -22,86 +22,66 @@ import {
   ShieldCheck,
   Check,
 } from "lucide-react";
-import { mockPrograms } from "@/lib/mock-data/programs";
-import { mockRegistrations } from "@/lib/mock-data/registrations";
-import { mockResidents } from "@/lib/mock-data/residents";
 import { useAdminProfile } from "@/lib/context/AdminProfileContext";
 import { RegistrationStatusBadge, ProgramStatusBadge } from "@/components/shared/StatusBadges";
-import { getPrograms } from "@/lib/services/programs";
-import { getRegistrations, updateRegistrationStatus } from "@/lib/services/registrations";
-import { getResidents } from "@/lib/services/residents";
+import { subscribeToPrograms } from "@/lib/services/programs";
+import { subscribeToRegistrations, updateRegistrationStatus } from "@/lib/services/registrations";
+import { subscribeToResidents } from "@/lib/services/residents";
 import { Program, Registration, Resident } from "@/types";
 
 export default function AdminDashboardPage() {
   const { profile } = useAdminProfile();
 
-  // State populated from Firestore with fallback to mock
   const [programsList, setProgramsList] = useState<Program[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [residentsCount, setResidentsCount] = useState<number>(0);
-
-  // Digital Clock & Date
   const [currentDate, setCurrentDate] = useState({
     time: "08:00 AM",
-    date: "Wednesday, October 21, 2026",
+    date: "Tuesday, October 27, 2026",
   });
+  const [isLive, setIsLive] = useState(false);
 
   useEffect(() => {
-    async function fetchDashboardData() {
-      try {
-        const [livePrograms, liveRegs, liveRes] = await Promise.allSettled([
-          getPrograms(),
-          getRegistrations(),
-          getResidents(),
-        ]);
-
-        if (livePrograms.status === "fulfilled") {
-          const mappedProgs: Program[] = livePrograms.value.map((p) => ({
-            id: p.id || `prog-${Date.now()}`,
-            title: p.title,
-            category: (p.category as any) || "Health",
-            description: p.description || "",
-            schedule: p.schedule || "",
-            location: p.location || "Barangay Lapasan Multi-Purpose Hall",
-            slots: Number(p.slots) || 100,
-            enrolled: Number(p.enrolledCount) || 0,
-            status: (p.status as any) || "Active",
-            officer: p.officer || "Barangay Officer",
-            benefits: ["Official barangay certificate"],
-            requirements: ["Barangay Lapasan Resident ID"],
-            startDate: p.schedule || "",
-            endDate: p.registrationDeadline || "",
-            tags: [p.category?.toLowerCase() || "civic"],
-          }));
-          setProgramsList(mappedProgs);
-        }
-
-        if (liveRegs.status === "fulfilled") {
-          const mappedRegs: Registration[] = liveRegs.value.map((r) => ({
-            id: r.id || `reg-${Date.now()}`,
-            residentId: r.residentId || "res-001",
-            residentName: r.residentName || "Resident",
-            programId: r.programId || "prog-001",
-            programTitle: r.programTitle || "Community Program",
-            purok: r.purok || "Purok 1",
-            phone: r.phone || "09170000000",
-            status: (r.status as any) || "Pending",
-            registeredAt: r.registeredAt ? new Date(r.registeredAt.seconds * 1000).toISOString() : new Date().toISOString(),
-          }));
-          setRegistrations(mappedRegs);
-        }
-
-        if (liveRes.status === "fulfilled") {
-          setResidentsCount(liveRes.value.length);
-        }
-      } catch (err) {
-        console.warn("Using offline dashboard fallback:", err);
-        setProgramsList(mockPrograms);
-        setRegistrations(mockRegistrations);
-        setResidentsCount(mockResidents.length);
-      }
-    }
-    fetchDashboardData();
+    const unsubProgs = subscribeToPrograms((progs) => {
+      const mapped: Program[] = progs.map((p) => ({
+        id: p.id || "",
+        title: p.title,
+        category: (p.category as any) || "Health",
+        description: p.description || "",
+        schedule: p.schedule || "",
+        location: p.location || "Barangay Lapasan Multi-Purpose Hall",
+        slots: Number(p.slots) || 0,
+        enrolled: Number(p.enrolledCount) || 0,
+        status: (p.status as any) || "Active",
+        officer: p.officer || "Barangay Officer",
+        benefits: [],
+        requirements: [],
+        startDate: p.schedule || "",
+        endDate: (p as any).registrationDeadline || "",
+        tags: [p.category?.toLowerCase() || "civic"],
+      }));
+      setProgramsList(mapped);
+      setIsLive(true);
+    });
+    const unsubRegs = subscribeToRegistrations((regs) => {
+      const mapped: Registration[] = regs.map((r) => ({
+        id: r.id || "",
+        residentId: r.residentId || "",
+        residentName: r.residentName || "Resident",
+        programId: r.programId || "",
+        programTitle: r.programTitle || "Community Program",
+        purok: r.purok || "Purok 1",
+        status: (r.status as any) || "Pending",
+        registeredAt: r.registeredAt
+          ? new Date(r.registeredAt.seconds * 1000).toISOString()
+          : new Date().toISOString(),
+      }));
+      setRegistrations(mapped);
+    });
+    const unsubRes = subscribeToResidents((res) => {
+      setResidentsCount(res.length);
+    });
+    return () => { unsubProgs(); unsubRegs(); unsubRes(); };
   }, []);
 
   useEffect(() => {
