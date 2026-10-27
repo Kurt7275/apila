@@ -7,8 +7,15 @@ import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.google.firebase.firestore.PersistentCacheSettings
 
 class ApilaApplication : Application() {
+
+    companion object {
+        lateinit var instance: ApilaApplication
+            private set
+    }
+
     override fun onCreate() {
         super.onCreate()
+        instance = this
         try {
             FirebaseApp.initializeApp(this)
             val settings = FirebaseFirestoreSettings.Builder()

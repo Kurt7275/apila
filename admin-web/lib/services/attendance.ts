@@ -7,6 +7,7 @@ import {
   query,
   orderBy,
   where,
+  onSnapshot,
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
@@ -28,6 +29,39 @@ export async function getAttendanceByProgram(programId: string): Promise<Attenda
   const q = query(collection(db, COL), where("programId", "==", programId));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as AttendanceRecord));
+}
+
+export function subscribeToAttendanceByProgram(
+  programId: string,
+  callback: (attendance: AttendanceRecord[]) => void
+): () => void {
+  const q = query(collection(db, COL), where("programId", "==", programId));
+  return onSnapshot(
+    q,
+    (snap) => {
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as AttendanceRecord));
+      callback(list);
+    },
+    (err) => {
+      console.warn("Attendance by program listener fallback:", err);
+    }
+  );
+}
+
+export function subscribeToAttendance(
+  callback: (attendance: AttendanceRecord[]) => void
+): () => void {
+  const q = query(collection(db, COL));
+  return onSnapshot(
+    q,
+    (snap) => {
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as AttendanceRecord));
+      callback(list);
+    },
+    (err) => {
+      console.warn("Attendance listener fallback:", err);
+    }
+  );
 }
 
 export async function markAttendance(

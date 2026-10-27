@@ -4,6 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.firestore.ListenerRegistration
 import com.lapasan.apila.data.model.Announcement
 import com.lapasan.apila.data.model.Program
 import com.lapasan.apila.data.model.Registration
@@ -42,6 +43,10 @@ class ResidentViewModel(
 
     var pendingCategoryFilter: String? = null
 
+    private var programsListener: ListenerRegistration? = null
+    private var registrationsListener: ListenerRegistration? = null
+    private var announcementsListener: ListenerRegistration? = null
+
     val currentUser: User?
         get() = authRepository.getCurrentUser()
 
@@ -51,6 +56,8 @@ class ResidentViewModel(
         onlyOpen: Boolean = false
     ) {
         _programs.value = Resource.Loading()
+
+        // 1. Initial load
         viewModelScope.launch {
             val result = programRepository.getPrograms(
                 categoryFilter = categoryFilter,
@@ -60,14 +67,46 @@ class ResidentViewModel(
             )
             _programs.value = result
         }
+
+        // 2. Attach real-time Firestore listener for live updates
+        programsListener?.remove()
+        programsListener = programRepository.listenToPrograms { liveList ->
+            var filtered = liveList.filter { it.status == Program.STATUS_PUBLISHED }
+            if (!categoryFilter.isNullOrBlank() && categoryFilter != "All Categories") {
+                filtered = filtered.filter { it.category.equals(categoryFilter, ignoreCase = true) }
+            }
+            if (!query.isNullOrBlank()) {
+                val q = query.trim().lowercase()
+                filtered = filtered.filter {
+                    it.title.lowercase().contains(q) ||
+                    it.venue.lowercase().contains(q) ||
+                    it.description.lowercase().contains(q) ||
+                    it.category.lowercase().contains(q)
+                }
+            }
+            if (onlyOpen) {
+                filtered = filtered.filter { it.isRegistrationOpen }
+            }
+            _programs.postValue(Resource.Success(filtered))
+        }
     }
 
     fun loadMyPrograms() {
         val user = currentUser ?: return
+
+        // 1. Initial fetch
         viewModelScope.launch {
             registrationRepository.fetchUserRegistrations(user.uid)
             val list = registrationRepository.getActiveRegistrations(user.uid)
             _activeRegistrations.value = list
+        }
+
+        // 2. Attach real-time Firestore listener for live pass/attendance updates
+        registrationsListener?.remove()
+        registrationsListener = registrationRepository.listenToUserRegistrations(user.uid) { liveList ->
+            val active = liveList.filter { it.isActive }
+            _activeRegistrations.postValue(active)
+            _historyRegistrations.postValue(liveList)
         }
     }
 
@@ -82,8 +121,16 @@ class ResidentViewModel(
 
     fun loadAnnouncements() {
         _announcements.value = Resource.Loading()
+
+        // 1. Initial fetch
         viewModelScope.launch {
             _announcements.value = announcementRepository.getAnnouncements()
+        }
+
+        // 2. Attach real-time Firestore listener for live broadcasts
+        announcementsListener?.remove()
+        announcementsListener = announcementRepository.listenToAnnouncements { liveList ->
+            _announcements.postValue(Resource.Success(liveList))
         }
     }
 
@@ -130,5 +177,12 @@ class ResidentViewModel(
     fun clearActionState() {
         _registrationAction.value = null
         _cancelAction.value = null
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        programsListener?.remove()
+        registrationsListener?.remove()
+        announcementsListener?.remove()
     }
 }

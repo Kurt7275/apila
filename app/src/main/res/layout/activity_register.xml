@@ -35,7 +35,7 @@
             android:layout_gravity="bottom"
             android:background="@drawable/bg_scene_to_white_fade" />
 
-        <!-- Circular Back Button (Matching reference circular back button) -->
+        <!-- Circular Back Button -->
         <FrameLayout
             android:id="@+id/btnBack"
             android:layout_width="44dp"
@@ -244,7 +244,91 @@
                 </LinearLayout>
             </FrameLayout>
 
-            <!-- Input 5: Street Address / House No. -->
+            <!-- Input 5: Sex / Gender Selection Dropdown -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_input_capsule">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="16dp">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_user_outline"
+                        app:tint="#94A3B8"
+                        android:contentDescription="Sex / Gender" />
+
+                    <Spinner
+                        android:id="@+id/spinnerGender"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:background="@null"
+                        android:spinnerMode="dropdown" />
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_forward"
+                        android:rotation="90"
+                        app:tint="#94A3B8"
+                        android:contentDescription="Dropdown arrow" />
+                </LinearLayout>
+            </FrameLayout>
+
+            <!-- Input 6: Date of Birth Picker -->
+            <FrameLayout
+                android:id="@+id/layoutBirthdate"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_input_capsule"
+                android:clickable="true"
+                android:focusable="true">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="18dp">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_calendar"
+                        app:tint="#94A3B8"
+                        android:contentDescription="Birthdate Calendar" />
+
+                    <EditText
+                        android:id="@+id/etBirthdate"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="12dp"
+                        android:background="@null"
+                        android:clickable="false"
+                        android:cursorVisible="false"
+                        android:focusable="false"
+                        android:focusableInTouchMode="false"
+                        android:hint="Date of Birth (Required)"
+                        android:inputType="none"
+                        android:textColor="#0F172A"
+                        android:textColorHint="#94A3B8"
+                        android:textSize="14sp" />
+                </LinearLayout>
+            </FrameLayout>
+
+            <!-- Input 7: Street Address / House No. -->
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="54dp"
@@ -280,7 +364,7 @@
                 </LinearLayout>
             </FrameLayout>
 
-            <!-- Input 5: Password -->
+            <!-- Input 8: Password -->
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="54dp"
@@ -316,7 +400,7 @@
                 </LinearLayout>
             </FrameLayout>
 
-            <!-- Input 6: Confirm Password -->
+            <!-- Input 9: Confirm Password -->
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="54dp"

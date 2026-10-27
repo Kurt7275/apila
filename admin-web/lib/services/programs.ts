@@ -8,6 +8,7 @@ import {
   deleteDoc,
   query,
   orderBy,
+  onSnapshot,
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
@@ -35,6 +36,22 @@ export async function getPrograms(): Promise<Program[]> {
   const q = query(collection(db, COL), orderBy("createdAt", "desc"));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Program));
+}
+
+export function subscribeToPrograms(
+  callback: (programs: Program[]) => void
+): () => void {
+  const q = query(collection(db, COL), orderBy("createdAt", "desc"));
+  return onSnapshot(
+    q,
+    (snap) => {
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Program));
+      callback(list);
+    },
+    (err) => {
+      console.warn("Programs listener fallback:", err);
+    }
+  );
 }
 
 export async function getProgramById(id: string): Promise<Program | null> {

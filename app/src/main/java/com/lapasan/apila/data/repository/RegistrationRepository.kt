@@ -3,6 +3,7 @@ package com.lapasan.apila.data.repository
 import android.util.Log
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.lapasan.apila.data.model.Program
 import com.lapasan.apila.data.model.Registration
 import com.lapasan.apila.data.model.User
@@ -22,9 +23,87 @@ class RegistrationRepository(
         }
     }
 
+    private var registrationsListener: ListenerRegistration? = null
+    private var attendanceListener: ListenerRegistration? = null
+
     companion object {
         // Dynamic cache — populated live from Firestore
         val localRegistrations = mutableListOf<Registration>()
+    }
+
+    fun listenToUserRegistrations(userId: String, onUpdate: (List<Registration>) -> Unit): ListenerRegistration? {
+        val db = firestore ?: return null
+        registrationsListener?.remove()
+        attendanceListener?.remove()
+
+        var latestAttendanceMap = mutableMapOf<String, String>()
+
+        // Real-time listener for user's attendance status
+        attendanceListener = db.collection("attendance")
+            .whereEqualTo("residentId", userId)
+            .addSnapshotListener { snapshot, _ ->
+                if (snapshot != null) {
+                    latestAttendanceMap = snapshot.documents.associate {
+                        (it.getString("programId") ?: "") to (it.getString("status")?.lowercase() ?: "pending")
+                    }.toMutableMap()
+
+                    // Re-evaluate local registrations attendance status
+                    if (localRegistrations.isNotEmpty()) {
+                        val updated = localRegistrations.filter { it.userId == userId }.map { reg ->
+                            val pId = reg.programId
+                            val att = latestAttendanceMap[pId] ?: reg.attendanceStatus
+                            reg.copy(attendanceStatus = att)
+                        }
+                        localRegistrations.removeAll { it.userId == userId }
+                        localRegistrations.addAll(updated)
+                        onUpdate(updated)
+                    }
+                }
+            }
+
+        // Real-time listener for user's registrations (approved, pending, rejected)
+        registrationsListener = db.collection("registrations")
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    Log.w("RegistrationRepo", "Listen error: ${e.message}")
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val userList = snapshot.documents.filter { doc ->
+                        val rId = doc.getString("residentId") ?: doc.getString("userId") ?: ""
+                        rId == userId
+                    }.map { doc ->
+                        val rawStatus = doc.getString("status") ?: "Pending"
+                        var rawAttendance = doc.getString("attendanceStatus")?.lowercase() ?: "pending"
+                        val pId = doc.getString("programId") ?: ""
+                        if (rawAttendance == "pending" && latestAttendanceMap.containsKey(pId)) {
+                            rawAttendance = latestAttendanceMap[pId] ?: "pending"
+                        }
+                        val timestamp = doc.getTimestamp("registeredAt")?.toDate()?.time ?: System.currentTimeMillis()
+                        Registration(
+                            id = doc.id,
+                            programId = pId,
+                            programTitle = doc.getString("programTitle") ?: "",
+                            programCategory = doc.getString("programCategory") ?: "Civic",
+                            programVenue = doc.getString("programVenue") ?: "Barangay Lapasan Multi-Purpose Hall",
+                            programDateTime = doc.getString("programDateTime") ?: "",
+                            userId = userId,
+                            residentName = doc.getString("residentName") ?: "",
+                            residentPhone = doc.getString("residentPhone") ?: doc.getString("phone") ?: "",
+                            residentPurok = doc.getString("residentPurok") ?: doc.getString("purok") ?: "",
+                            registeredAt = timestamp,
+                            status = rawStatus,
+                            attendanceStatus = rawAttendance
+                        )
+                    }
+                    localRegistrations.removeAll { it.userId == userId }
+                    localRegistrations.addAll(userList)
+                    onUpdate(userList)
+                    Log.d("RegistrationRepo", "Real-time registrations updated: ${userList.size} items for $userId")
+                }
+            }
+
+        return registrationsListener
     }
 
     suspend fun fetchUserRegistrations(userId: String): List<Registration> {

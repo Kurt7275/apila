@@ -7,47 +7,39 @@ import {
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { logAuditEvent } from "./auditLogs";
+import {
+  getAdminProfile,
+  saveAdminProfile,
+  verifyOwnerPassword,
+  DEFAULT_PROFILE,
+} from "./adminProfile";
+
+// Session marker key — only stores the logged-in email, no profile data
+const SESSION_KEY = "apila_admin_email";
+const LOGGED_IN_KEY = "apila_admin_logged_in";
 
 export async function adminLogin(email: string, password: string) {
   const cleanEmail = email.trim().toLowerCase();
 
   // 1. Check Primary Owner Admin Account
   if (cleanEmail === "admin@lapasan.gov.ph") {
-    const BUILT_IN_PASSWORDS = ["admin2026", "123456", "admin"];
-    let customPassword: string | null = null;
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem("apila_owner_credentials");
-        if (saved) customPassword = JSON.parse(saved).password || null;
-      } catch {}
-    }
-    const isValidPassword =
-      BUILT_IN_PASSWORDS.includes(password) || (customPassword !== null && customPassword === password);
-
-    if (!isValidPassword) {
+    const isValid = await verifyOwnerPassword(password);
+    if (!isValid) {
       throw new Error("Invalid administrator email or password.");
     }
 
+    // Load (or seed) owner profile from Firestore
+    const ownerProfile = await getAdminProfile(cleanEmail);
+
+    // Mark session
     if (typeof window !== "undefined") {
-      localStorage.setItem("apila_admin_logged_in", "true");
-      localStorage.setItem(
-        "apila_admin_profile",
-        JSON.stringify({
-          name: "Barangay Admin",
-          role: "System Owner / Head Admin",
-          email: "admin@lapasan.gov.ph",
-          phone: "+63 917 123 4567",
-          office: "Office of the Punong Barangay / Owner",
-          jurisdiction: "Barangay Lapasan, Cagayan de Oro City",
-          initials: "AD",
-          status: "Active Session",
-          isOwner: true,
-        })
-      );
+      sessionStorage.setItem(LOGGED_IN_KEY, "true");
+      sessionStorage.setItem(SESSION_KEY, cleanEmail);
     }
+
     try {
       await logAuditEvent({
-        officer: "Barangay Admin",
+        officer: ownerProfile.name || "Barangay Admin",
         action: "Owner signed into Admin Console",
         category: "Security",
         status: "Success",
@@ -56,9 +48,9 @@ export async function adminLogin(email: string, password: string) {
     } catch {}
 
     return {
-      email: "admin@lapasan.gov.ph",
+      email: cleanEmail,
       uid: "owner-admin",
-      displayName: "Barangay Admin",
+      displayName: ownerProfile.name || "Barangay Admin",
     } as unknown as User;
   }
 
@@ -74,22 +66,23 @@ export async function adminLogin(email: string, password: string) {
       }
 
       if (data.password === password) {
+        // Ensure their adminProfile doc exists in Firestore with their details
+        await saveAdminProfile(cleanEmail, {
+          name: data.name || "Admin Officer",
+          role: data.role || "Barangay Officer",
+          email: cleanEmail,
+          phone: data.phone || "+63 917 000 0000",
+          office: data.office || "Barangay Administration",
+          jurisdiction: "Barangay Lapasan, Cagayan de Oro City",
+          initials: data.initials || "AO",
+          status: "Active Session",
+          isOwner: false,
+        });
+
+        // Mark session
         if (typeof window !== "undefined") {
-          localStorage.setItem("apila_admin_logged_in", "true");
-          localStorage.setItem(
-            "apila_admin_profile",
-            JSON.stringify({
-              name: data.name || "Admin Officer",
-              role: data.role || "Barangay Officer",
-              email: cleanEmail,
-              phone: data.phone || "+63 917 000 0000",
-              office: data.office || "Barangay Administration",
-              jurisdiction: "Barangay Lapasan, Cagayan de Oro City",
-              initials: data.initials || "AO",
-              status: "Active Session",
-              isOwner: false,
-            })
-          );
+          sessionStorage.setItem(LOGGED_IN_KEY, "true");
+          sessionStorage.setItem(SESSION_KEY, cleanEmail);
         }
 
         try {
@@ -119,30 +112,31 @@ export async function adminLogin(email: string, password: string) {
   // 3. Fallback to Firebase Auth (if user was created via Auth SDK directly)
   try {
     const result = await signInWithEmailAndPassword(auth, cleanEmail, password);
+
+    // Check if Firestore has admin profile info
+    try {
+      const snap = await getDoc(doc(db, "admins", cleanEmail));
+      if (snap.exists()) {
+        const data = snap.data();
+        await saveAdminProfile(cleanEmail, {
+          name: data.name || result.user.displayName || "Admin Officer",
+          role: data.role || "Barangay Officer",
+          email: cleanEmail,
+          phone: data.phone || "+63 917 000 0000",
+          office: data.office || "Barangay Administration",
+          jurisdiction: "Barangay Lapasan, Cagayan de Oro City",
+          initials: data.initials || "AO",
+          status: "Active Session",
+          isOwner: false,
+        });
+      }
+    } catch {}
+
     if (typeof window !== "undefined") {
-      localStorage.setItem("apila_admin_logged_in", "true");
-      // Check if Firestore has profile info
-      try {
-        const snap = await getDoc(doc(db, "admins", cleanEmail));
-        if (snap.exists()) {
-          const data = snap.data();
-          localStorage.setItem(
-            "apila_admin_profile",
-            JSON.stringify({
-              name: data.name || result.user.displayName || "Admin Officer",
-              role: data.role || "Barangay Officer",
-              email: cleanEmail,
-              phone: data.phone || "+63 917 000 0000",
-              office: data.office || "Barangay Administration",
-              jurisdiction: "Barangay Lapasan, Cagayan de Oro City",
-              initials: data.initials || "AO",
-              status: "Active Session",
-              isOwner: false,
-            })
-          );
-        }
-      } catch {}
+      sessionStorage.setItem(LOGGED_IN_KEY, "true");
+      sessionStorage.setItem(SESSION_KEY, cleanEmail);
     }
+
     return result.user;
   } catch (err: any) {
     throw new Error("Invalid administrator email or password.");
@@ -151,7 +145,8 @@ export async function adminLogin(email: string, password: string) {
 
 export async function adminLogout() {
   if (typeof window !== "undefined") {
-    localStorage.removeItem("apila_admin_logged_in");
+    sessionStorage.removeItem(LOGGED_IN_KEY);
+    sessionStorage.removeItem(SESSION_KEY);
   }
   try {
     await signOut(auth);
@@ -159,21 +154,21 @@ export async function adminLogout() {
 }
 
 export function onAuthChange(callback: (user: User | null) => void) {
-  const isLocal =
+  const isLoggedIn =
     typeof window !== "undefined" &&
-    localStorage.getItem("apila_admin_logged_in") === "true";
+    sessionStorage.getItem(LOGGED_IN_KEY) === "true";
 
-  if (isLocal) {
-    let savedProfile: any = null;
-    try {
-      const p = localStorage.getItem("apila_admin_profile");
-      if (p) savedProfile = JSON.parse(p);
-    } catch {}
+  if (isLoggedIn) {
+    const email =
+      (typeof window !== "undefined" && sessionStorage.getItem(SESSION_KEY)) ||
+      "admin@lapasan.gov.ph";
 
+    // Provide a minimal stub — the actual profile is loaded from Firestore
+    // via AdminProfileContext independently
     callback({
-      email: savedProfile?.email || "admin@lapasan.gov.ph",
+      email,
       uid: "admin-session",
-      displayName: savedProfile?.name || "Barangay Admin",
+      displayName: "Barangay Admin",
     } as unknown as User);
   }
 
@@ -182,18 +177,13 @@ export function onAuthChange(callback: (user: User | null) => void) {
       callback(user);
     } else if (
       typeof window !== "undefined" &&
-      localStorage.getItem("apila_admin_logged_in") === "true"
+      sessionStorage.getItem(LOGGED_IN_KEY) === "true"
     ) {
-      let savedProfile: any = null;
-      try {
-        const p = localStorage.getItem("apila_admin_profile");
-        if (p) savedProfile = JSON.parse(p);
-      } catch {}
-
+      const email = sessionStorage.getItem(SESSION_KEY) || "admin@lapasan.gov.ph";
       callback({
-        email: savedProfile?.email || "admin@lapasan.gov.ph",
+        email,
         uid: "admin-session",
-        displayName: savedProfile?.name || "Barangay Admin",
+        displayName: "Barangay Admin",
       } as unknown as User);
     } else {
       callback(null);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import jsQR from "jsqr";
 import {
   Camera,
   X,
@@ -10,6 +11,8 @@ import {
   Scan,
   RefreshCw,
   Volume2,
+  RotateCcw,
+  Sparkles,
 } from "lucide-react";
 
 interface Attendee {
@@ -19,6 +22,7 @@ interface Attendee {
   programId: string;
   programTitle: string;
   purok?: string;
+  phone?: string;
 }
 
 interface QrScannerModalProps {
@@ -39,80 +43,114 @@ export function QrScannerModal({
   onMarkPresent,
 }: QrScannerModalProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [manualCode, setManualCode] = useState("");
+  const [sessionCount, setSessionCount] = useState(0);
+
   const [scanResult, setScanResult] = useState<{
     type: "SUCCESS" | "ALREADY_PRESENT" | "NOT_FOUND";
     message: string;
     residentName?: string;
     purok?: string;
+    time?: string;
   } | null>(null);
-  const [sessionCount, setSessionCount] = useState(0);
 
-  // Play a pleasant check-in beep using Web Audio API
+  // Play pleasant check-in chime using Web Audio API
   const playBeep = () => {
     try {
-      const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const AudioCtxClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtxClass) return;
+      const audioCtx = new AudioCtxClass();
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
+
       osc.type = "sine";
-      osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
-      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+      osc.frequency.exponentialRampToValueAtTime(1320, audioCtx.currentTime + 0.12); // E6
+
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.22);
+
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.start();
-      osc.stop(audioCtx.currentTime + 0.18);
+      osc.stop(audioCtx.currentTime + 0.22);
     } catch {
       // Audio not permitted or unsupported
     }
   };
 
-  // Process a scanned / entered pass code
-  const handleProcessCode = useCallback((rawCode: string) => {
-    const code = rawCode.trim();
-    if (!code) return;
+  // Process a scanned or manually entered pass code
+  const handleProcessCode = useCallback(
+    (rawCode: string) => {
+      const code = rawCode.trim();
+      if (!code) return;
 
-    // Normalize code (extract ID if format is APILA:reg_xxx or PASS:reg_xxx)
-    const normalizedId = code.replace(/^(apila:|pass:|id:)\s*/i, "").trim();
+      // Normalization: handles "apila:reg_xxx", "PASS-ID: reg_xxx", "ID #xxx", or direct IDs
+      const clean = code.replace(/^(apila:|pass-id:|pass:|id:\s*#?)\s*/i, "").trim().toLowerCase();
 
-    const attendee = programRegistrations.find(
-      (r) =>
-        r.id.toLowerCase() === normalizedId.toLowerCase() ||
-        r.id.toLowerCase().endsWith(normalizedId.toLowerCase()) ||
-        normalizedId.toLowerCase().includes(r.id.toLowerCase())
-    );
+      const attendee = programRegistrations.find((r) => {
+        const regId = r.id.toLowerCase();
+        const resId = (r.residentId || "").toLowerCase();
+        const phone = (r.phone || "").replace(/\D/g, "");
+        const cleanPhone = clean.replace(/\D/g, "");
+        const resName = r.residentName.toLowerCase();
 
-    if (!attendee) {
-      setScanResult({
-        type: "NOT_FOUND",
-        message: `Pass "${code}" is not registered for this program.`,
+        return (
+          regId === clean ||
+          regId.endsWith(clean) ||
+          clean.includes(regId) ||
+          (resId !== "" && (resId === clean || resId.endsWith(clean))) ||
+          (cleanPhone.length >= 7 && phone !== "" && phone.includes(cleanPhone)) ||
+          (clean.length >= 4 && resName.includes(clean))
+        );
       });
-      return;
-    }
 
-    if (attendanceMap[attendee.id] === "PRESENT") {
+      if (!attendee) {
+        setScanResult({
+          type: "NOT_FOUND",
+          message: `Pass code "${code}" is not registered for this program.`,
+        });
+        return;
+      }
+
+      if (attendanceMap[attendee.id] === "PRESENT") {
+        setScanResult({
+          type: "ALREADY_PRESENT",
+          message: "Attendee is already checked in (Present).",
+          residentName: attendee.residentName,
+          purok: attendee.purok,
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        });
+        return;
+      }
+
+      // Mark present
+      onMarkPresent(attendee.id);
+      playBeep();
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        try {
+          navigator.vibrate([80, 40, 80]);
+        } catch {}
+      }
+
+      setSessionCount((prev) => prev + 1);
       setScanResult({
-        type: "ALREADY_PRESENT",
-        message: "Already marked present.",
+        type: "SUCCESS",
+        message: "Check-in Confirmed!",
         residentName: attendee.residentName,
-        purok: attendee.purok,
+        purok: attendee.purok || "Barangay Lapasan",
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       });
-      return;
-    }
-
-    // Success!
-    onMarkPresent(attendee.id);
-    playBeep();
-    setSessionCount((prev) => prev + 1);
-    setScanResult({
-      type: "SUCCESS",
-      message: "Check-in Confirmed!",
-      residentName: attendee.residentName,
-      purok: attendee.purok,
-    });
-  }, [programRegistrations, attendanceMap, onMarkPresent]);
+    },
+    [programRegistrations, attendanceMap, onMarkPresent]
+  );
 
   // Start Camera Stream
   useEffect(() => {
@@ -125,7 +163,11 @@ export function QrScannerModal({
       try {
         setCameraError(null);
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
+          video: {
+            facingMode: { ideal: facingMode },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
         });
 
         if (isCancelled) {
@@ -145,7 +187,7 @@ export function QrScannerModal({
           setCameraError(
             err instanceof Error
               ? err.message
-              : "Unable to access camera. Please allow camera permissions."
+              : "Unable to access camera. Please allow webcam permissions."
           );
         }
       }
@@ -159,54 +201,92 @@ export function QrScannerModal({
         stream.getTracks().forEach((track) => track.stop());
       }
     };
-  }, [isOpen]);
+  }, [isOpen, facingMode]);
 
-  // Real-time Barcode Detection loop if BarcodeDetector is supported
+  // QR Scanning Loop using jsQR with optional BarcodeDetector acceleration
   useEffect(() => {
     if (!isOpen || !hasCameraPermission) return;
 
     let animationId: number;
-    // Check if BarcodeDetector API exists in browser
-    const BarcodeDetectorClass = (window as unknown as { BarcodeDetector?: new (options: { formats: string[] }) => { detect: (src: ImageBitmapSource) => Promise<Array<{ rawValue: string }>> } }).BarcodeDetector;
-
-    if (!BarcodeDetectorClass) {
-      return;
-    }
-
-    let detector: { detect: (src: ImageBitmapSource) => Promise<Array<{ rawValue: string }>> };
-    try {
-      detector = new BarcodeDetectorClass({ formats: ["qr_code"] });
-    } catch {
-      return;
-    }
-
+    let isScanning = true;
     let lastScannedCode = "";
     let lastScanTime = 0;
 
-    const detectLoop = async () => {
-      if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
-        try {
-          const barcodes = await detector.detect(videoRef.current);
-          if (barcodes.length > 0) {
-            const rawValue = barcodes[0].rawValue;
-            const now = Date.now();
-            // Debounce same code for 3 seconds
-            if (rawValue !== lastScannedCode || now - lastScanTime > 3000) {
-              lastScannedCode = rawValue;
-              lastScanTime = now;
-              handleProcessCode(rawValue);
+    // Optional native detector if available
+    const BarcodeDetectorClass = (
+      window as unknown as {
+        BarcodeDetector?: new (options: { formats: string[] }) => {
+          detect: (src: ImageBitmapSource) => Promise<Array<{ rawValue: string }>>;
+        };
+      }
+    ).BarcodeDetector;
+
+    let nativeDetector: { detect: (src: ImageBitmapSource) => Promise<Array<{ rawValue: string }>> } | null = null;
+    if (BarcodeDetectorClass) {
+      try {
+        nativeDetector = new BarcodeDetectorClass({ formats: ["qr_code"] });
+      } catch {}
+    }
+
+    const scanFrame = async () => {
+      if (!isScanning) return;
+
+      const video = videoRef.current;
+      if (video && video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0) {
+        const now = Date.now();
+
+        // 1. Try native BarcodeDetector if supported
+        let detected = false;
+        if (nativeDetector) {
+          try {
+            const barcodes = await nativeDetector.detect(video);
+            if (barcodes.length > 0 && barcodes[0].rawValue) {
+              const raw = barcodes[0].rawValue;
+              if (raw !== lastScannedCode || now - lastScanTime > 3000) {
+                lastScannedCode = raw;
+                lastScanTime = now;
+                handleProcessCode(raw);
+              }
+              detected = true;
             }
+          } catch {}
+        }
+
+        // 2. Universal jsQR fallback across every desktop & mobile browser
+        if (!detected) {
+          if (!canvasRef.current) {
+            canvasRef.current = document.createElement("canvas");
           }
-        } catch {
-          // Frame detection skip
+          const canvas = canvasRef.current;
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const ctx = canvas.getContext("2d", { willReadFrequently: true });
+          if (ctx) {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            try {
+              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              const qr = jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts: "dontInvert",
+              });
+              if (qr && qr.data) {
+                if (qr.data !== lastScannedCode || now - lastScanTime > 3000) {
+                  lastScannedCode = qr.data;
+                  lastScanTime = now;
+                  handleProcessCode(qr.data);
+                }
+              }
+            } catch {}
+          }
         }
       }
-      animationId = requestAnimationFrame(detectLoop);
+
+      animationId = requestAnimationFrame(scanFrame);
     };
 
-    animationId = requestAnimationFrame(detectLoop);
+    animationId = requestAnimationFrame(scanFrame);
 
     return () => {
+      isScanning = false;
       cancelAnimationFrame(animationId);
     };
   }, [isOpen, hasCameraPermission, handleProcessCode]);
@@ -223,16 +303,28 @@ export function QrScannerModal({
               <Scan className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-extrabold text-[#0F172A]">Scan Resident QR Pass</h2>
-              <p className="text-xs text-[#64748B] truncate max-w-[260px] sm:max-w-xs">{programTitle}</p>
+              <h2 className="text-base font-extrabold text-[#0F172A] flex items-center gap-1.5">
+                <span>Scan Resident QR Pass</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              </h2>
+              <p className="text-xs text-[#64748B] truncate max-w-[240px] sm:max-w-xs">{programTitle}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="w-9 h-9 rounded-full bg-white border border-[#ECE7DF] hover:bg-slate-100 flex items-center justify-center text-[#64748B] transition-colors cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setFacingMode((prev) => (prev === "environment" ? "user" : "environment"))}
+              title="Flip camera"
+              className="w-9 h-9 rounded-full bg-white border border-[#ECE7DF] hover:bg-slate-100 flex items-center justify-center text-[#64748B] transition-colors cursor-pointer"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onClose}
+              className="w-9 h-9 rounded-full bg-white border border-[#ECE7DF] hover:bg-slate-100 flex items-center justify-center text-[#64748B] transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Viewfinder Container */}
@@ -240,14 +332,14 @@ export function QrScannerModal({
           <video
             ref={videoRef}
             className="w-full h-full object-cover"
-            style={{ transform: "scaleX(-1)" }}
+            style={{ transform: facingMode === "user" ? "scaleX(-1)" : "none" }}
             playsInline
             muted
           />
 
           {/* Viewfinder Reticle Overlay */}
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-            <div className="w-56 h-56 border-2 border-white/40 rounded-3xl relative flex items-center justify-center">
+            <div className="w-56 h-56 border-2 border-white/40 rounded-3xl relative flex items-center justify-center shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]">
               {/* Corner accents in brand orange */}
               <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-[#F45113] rounded-tl-xl" />
               <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-[#F45113] rounded-tr-xl" />
@@ -265,13 +357,13 @@ export function QrScannerModal({
               <Camera className="w-10 h-10 text-slate-400" />
               <p className="text-xs font-bold text-slate-200">{cameraError}</p>
               <p className="text-[11px] text-slate-400">
-                You can still verify attendees using the Pass ID input below.
+                You can still verify attendees using the Pass ID / Phone input below.
               </p>
             </div>
           )}
         </div>
 
-        {/* Status / Feedback Alert */}
+        {/* Status / Feedback Alert Banner */}
         {scanResult && (
           <div
             className={`p-4 border-b text-xs transition-all ${
@@ -284,15 +376,24 @@ export function QrScannerModal({
           >
             <div className="flex items-start gap-3">
               {scanResult.type === "SUCCESS" ? (
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
+              ) : scanResult.type === "ALREADY_PRESENT" ? (
+                <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0">
+                  <Sparkles className="w-4 h-4" />
+                </div>
               ) : (
-                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="w-7 h-7 rounded-full bg-rose-600 text-white flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-4 h-4" />
+                </div>
               )}
               <div className="flex-1">
                 <p className="font-extrabold text-sm">{scanResult.message}</p>
                 {scanResult.residentName && (
-                  <p className="font-bold mt-0.5 text-xs">
+                  <p className="font-bold mt-0.5 text-xs text-[#0F172A]">
                     {scanResult.residentName} · {scanResult.purok || "Lapasan"}
+                    {scanResult.time ? ` (${scanResult.time})` : ""}
                   </p>
                 )}
               </div>
@@ -314,7 +415,7 @@ export function QrScannerModal({
               <QrCode className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Enter or scan Pass ID (e.g. reg_101)..."
+                placeholder="Enter Pass ID, Phone, or Resident ID..."
                 value={manualCode}
                 onChange={(e) => setManualCode(e.target.value)}
                 className="w-full pl-9 pr-4 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113]"
@@ -331,11 +432,11 @@ export function QrScannerModal({
           {/* Session Summary Footer */}
           <div className="flex items-center justify-between pt-2 border-t border-[#ECE7DF] text-xs text-[#64748B]">
             <span className="font-semibold">
-              Scanned this session: <strong className="text-[#0F172A]">{sessionCount}</strong>
+              Scanned this session: <strong className="text-[#0F172A] font-extrabold">{sessionCount}</strong>
             </span>
             <div className="flex items-center gap-1.5 text-[11px] text-[#94A3B8]">
-              <Volume2 className="w-3.5 h-3.5" />
-              <span>Audio Chime Enabled</span>
+              <Volume2 className="w-3.5 h-3.5 text-[#F45113]" />
+              <span>Chime & Vibration Active</span>
             </div>
           </div>
         </div>

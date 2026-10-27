@@ -4,8 +4,13 @@ import { useState, useEffect } from "react";
 import { mockRegistrations } from "@/lib/mock-data/registrations";
 import { mockPrograms } from "@/lib/mock-data/programs";
 import { Registration, RegistrationStatus } from "@/types";
-import { getRegistrations, updateRegistrationStatus } from "@/lib/services/registrations";
-import { getPrograms, Program } from "@/lib/services/programs";
+import {
+  getRegistrations,
+  subscribeToRegistrations,
+  updateRegistrationStatus,
+} from "@/lib/services/registrations";
+import { getPrograms, subscribeToPrograms, Program } from "@/lib/services/programs";
+import { useAdminProfile } from "@/lib/context/AdminProfileContext";
 import {
   Search,
   Download,
@@ -18,10 +23,12 @@ import {
   Check,
   RotateCcw,
   BookOpen,
+  AlertTriangle,
 } from "lucide-react";
 import { RegistrationStatusBadge } from "@/components/shared/StatusBadges";
 
 export default function AdminRegistrationsPage() {
+  const { profile } = useAdminProfile();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [livePrograms, setLivePrograms] = useState<Program[]>([]);
   const [search, setSearch] = useState("");
@@ -29,41 +36,57 @@ export default function AdminRegistrationsPage() {
   const [purokFilter, setPurokFilter] = useState<string>("ALL");
   const [exportNotice, setExportNotice] = useState<string | null>(null);
 
+  // Live Real-Time Firestore listeners for Registrations & Programs
   useEffect(() => {
-    async function fetchLiveRegistrations() {
-      try {
-        const live = await getRegistrations();
-        const mapped: Registration[] = live.map((r) => ({
-          id: r.id || `reg-${Date.now()}`,
-          residentId: r.residentId || "res-001",
-          residentName: r.residentName || "Resident",
-          programId: r.programId || "prog-001",
-          programTitle: r.programTitle || "Community Program",
-          purok: r.purok || "Purok 1",
-          phone: r.phone || "09170000000",
-          status: (r.status as RegistrationStatus) || "Pending",
-          registeredAt: r.registeredAt ? new Date(r.registeredAt.seconds * 1000).toISOString() : new Date().toISOString(),
-        }));
-        setRegistrations(mapped);
-      } catch (err) {
-        console.warn("Using offline registrations cache:", err);
+    const unsubRegistrations = subscribeToRegistrations((live) => {
+      const mapped: Registration[] = live.map((r) => ({
+        id: r.id || `reg-${Date.now()}`,
+        residentId: r.residentId || "res-001",
+        residentName: r.residentName || "Resident",
+        programId: r.programId || "prog-001",
+        programTitle: r.programTitle || "Community Program",
+        purok: r.purok || "Purok 1",
+        phone: r.phone || "09170000000",
+        status: (r.status as RegistrationStatus) || "Pending",
+        registeredAt: r.registeredAt?.seconds
+          ? new Date(r.registeredAt.seconds * 1000).toISOString()
+          : new Date().toISOString(),
+      }));
+      setRegistrations(mapped);
+    });
+
+    const unsubPrograms = subscribeToPrograms((programs) => {
+      if (programs && programs.length > 0) {
+        setLivePrograms(programs);
       }
-    }
-    async function fetchLivePrograms() {
-      try {
-        const programs = await getPrograms();
-        if (programs && programs.length > 0) {
-          setLivePrograms(programs);
-        }
-      } catch (err) {
-        console.warn("Using offline programs cache:", err);
-      }
-    }
-    fetchLiveRegistrations();
-    fetchLivePrograms();
+    });
+
+    return () => {
+      unsubRegistrations();
+      unsubPrograms();
+    };
   }, []);
 
-  const approve = async (id: string) => {
+  // Program slots lookup map – prefer live Firestore programs, fall back to mock
+  const programSourceList = livePrograms.length > 0 ? livePrograms : mockPrograms;
+  const programSlotsMap = programSourceList.reduce((acc, p) => {
+    acc[p.id!] = {
+      slots: (p as any).slots ?? (p as any).maxCapacity ?? 100,
+      enrolled: (p as any).enrolledCount ?? (p as any).enrolled ?? (p as any).registeredCount ?? 0,
+      title: p.title,
+    };
+    return acc;
+  }, {} as Record<string, { slots: number; enrolled: number; title: string }>);
+
+  const approve = async (id: string, programId?: string) => {
+    const slotInfo = programId ? programSlotsMap[programId] : null;
+    if (slotInfo && slotInfo.enrolled >= slotInfo.slots) {
+      const proceed = confirm(
+        `Notice: Program "${slotInfo.title}" is currently full (${slotInfo.enrolled}/${slotInfo.slots} filled). Are you sure you want to approve this resident?`
+      );
+      if (!proceed) return;
+    }
+
     setRegistrations((prev) =>
       prev.map((r) =>
         r.id === id
@@ -76,7 +99,7 @@ export default function AdminRegistrationsPage() {
       )
     );
     try {
-      await updateRegistrationStatus(id, "Approved");
+      await updateRegistrationStatus(id, "Approved", profile?.name || "Barangay Admin");
     } catch (err) {
       console.warn("Firestore status update skipped:", err);
     }
@@ -89,22 +112,11 @@ export default function AdminRegistrationsPage() {
       )
     );
     try {
-      await updateRegistrationStatus(id, "Rejected");
+      await updateRegistrationStatus(id, "Rejected", profile?.name || "Barangay Admin");
     } catch (err) {
       console.warn("Firestore status update skipped:", err);
     }
   };
-
-  // Program slots lookup map – prefer live Firestore programs, fall back to mock
-  const programSourceList = livePrograms.length > 0 ? livePrograms : mockPrograms;
-  const programSlotsMap = programSourceList.reduce((acc, p) => {
-    acc[p.id!] = {
-      slots: (p as any).slots ?? 100,
-      enrolled: (p as any).enrolledCount ?? (p as any).enrolled ?? 0,
-      title: p.title,
-    };
-    return acc;
-  }, {} as Record<string, { slots: number; enrolled: number; title: string }>);
 
   const counts = {
     all: registrations.length,
@@ -120,19 +132,18 @@ export default function AdminRegistrationsPage() {
       !search ||
       r.residentName.toLowerCase().includes(search.toLowerCase()) ||
       r.programTitle.toLowerCase().includes(search.toLowerCase()) ||
-      r.purok.toLowerCase().includes(search.toLowerCase()) ||
       r.id.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === "ALL" || r.status === statusFilter;
     const matchesPurok = purokFilter === "ALL" || r.purok === purokFilter;
     return matchesSearch && matchesStatus && matchesPurok;
   });
 
-  const handleExportCSV = () => {
-    const header = "Registration ID,Resident Name,Program Title,Purok,Submitted At,Status,Approved At\n";
+  const exportCSV = () => {
+    const header = "Registration ID,Resident Name,Program Title,Purok,Submitted At,Status\n";
     const rows = filtered
       .map(
         (r) =>
-          `"${r.id}","${r.residentName}","${r.programTitle}","${r.purok}","${r.registeredAt}","${r.status}","${r.approvedAt || "N/A"}"`
+          `"${r.id}","${r.residentName}","${r.programTitle}","${r.purok}","${new Date(r.registeredAt).toLocaleDateString()}","${r.status}"`
       )
       .join("\n");
     const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8;" });
@@ -143,8 +154,7 @@ export default function AdminRegistrationsPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-
-    setExportNotice("Registrations list exported to CSV successfully.");
+    setExportNotice("Registrations roster exported to CSV successfully.");
     setTimeout(() => setExportNotice(null), 3000);
   };
 
@@ -156,46 +166,49 @@ export default function AdminRegistrationsPage() {
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
             Registrations
           </h1>
+          <p className="text-xs text-[#64748B] mt-1 font-medium">
+            Review resident sign-ups, enforce quota limits, and dispatch approval notifications.
+          </p>
         </div>
 
         <button
-          onClick={handleExportCSV}
+          onClick={exportCSV}
           className="flex items-center gap-2 px-4 py-2.5 bg-white border border-[#ECE7DF] hover:border-[#F45113]/50 text-xs font-bold text-[#0F172A] rounded-2xl shadow-sm transition-all cursor-pointer self-start sm:self-auto"
         >
           <Download className="w-3.5 h-3.5 text-[#F45113]" />
-          <span>Export CSV</span>
+          <span>Export Roster CSV</span>
         </button>
       </div>
 
       {exportNotice && (
-        <div className="px-4 py-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+        <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           <span>{exportNotice}</span>
         </div>
       )}
 
-      {/* ── KPI Bento Row ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      {/* ── KPI Bento Grid ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-3xl border border-[#ECE7DF] p-5 shadow-sm space-y-1">
-          <p className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">Total Submissions</p>
+          <p className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">All Submissions</p>
           <p className="text-3xl font-extrabold text-[#0F172A]">{counts.all}</p>
-          <p className="text-[11px] text-[#64748B]">All-time resident requests</p>
+          <p className="text-[11px] text-[#64748B]">Across all active programs</p>
         </div>
 
         <div className="bg-white rounded-3xl border border-[#ECE7DF] p-5 shadow-sm space-y-1">
           <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Pending Review</p>
           <p className="text-3xl font-extrabold text-amber-600">{counts.pending}</p>
-          <p className="text-[11px] text-[#64748B]">Awaiting admin decision</p>
+          <p className="text-[11px] text-[#64748B]">Requires staff verification</p>
         </div>
 
         <div className="bg-white rounded-3xl border border-[#ECE7DF] p-5 shadow-sm space-y-1">
-          <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Approved Seats</p>
+          <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Approved Passes</p>
           <p className="text-3xl font-extrabold text-emerald-600">{counts.approved}</p>
-          <p className="text-[11px] text-[#64748B]">Confirmed participants</p>
+          <p className="text-[11px] text-[#64748B]">Active QR passes issued</p>
         </div>
 
         <div className="bg-white rounded-3xl border border-[#ECE7DF] p-5 shadow-sm space-y-1">
-          <p className="text-[11px] font-bold text-rose-700 uppercase tracking-wider">Rejected Requests</p>
+          <p className="text-[11px] font-bold text-rose-700 uppercase tracking-wider">Rejected</p>
           <p className="text-3xl font-extrabold text-rose-600">{counts.rejected}</p>
           <p className="text-[11px] text-[#64748B]">Declined submissions</p>
         </div>
@@ -263,7 +276,7 @@ export default function AdminRegistrationsPage() {
             <thead>
               <tr className="bg-[#FFF9F3]/70 border-b border-[#ECE7DF] text-[10px] font-extrabold text-[#64748B] uppercase tracking-wider">
                 <th className="py-3 px-5">Participant / Resident</th>
-                <th className="py-3 px-4">Program & Available Slots</th>
+                <th className="py-3 px-4">Program & Capacity Status</th>
                 <th className="py-3 px-4">Purok Area</th>
                 <th className="py-3 px-4">Submitted Date</th>
                 <th className="py-3 px-4 text-center">Status</th>
@@ -283,7 +296,10 @@ export default function AdminRegistrationsPage() {
                   const programSlotInfo = programSlotsMap[r.programId] || {
                     slots: 100,
                     enrolled: 45,
+                    title: r.programTitle,
                   };
+                  const isFull = programSlotInfo.enrolled >= programSlotInfo.slots;
+
                   return (
                     <tr key={r.id} className="hover:bg-[#FFF9F3]/40 transition-colors group">
                       {/* Participant */}
@@ -304,9 +320,16 @@ export default function AdminRegistrationsPage() {
                         <p className="font-bold text-[#0F172A] truncate" title={r.programTitle}>
                           {r.programTitle}
                         </p>
-                        <p className="text-[10px] text-[#64748B] mt-0.5">
-                          Capacity: {programSlotInfo.enrolled} / {programSlotInfo.slots} filled
-                        </p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <p className="text-[10px] text-[#64748B]">
+                            {programSlotInfo.enrolled} / {programSlotInfo.slots} slots filled
+                          </p>
+                          {isFull && (
+                            <span className="px-1.5 py-0.2 rounded-md text-[9px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200">
+                              FULL
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Purok */}
@@ -335,7 +358,7 @@ export default function AdminRegistrationsPage() {
                         {r.status === "Pending" ? (
                           <div className="inline-flex items-center gap-1.5 justify-end">
                             <button
-                              onClick={() => approve(r.id)}
+                              onClick={() => approve(r.id, r.programId)}
                               className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer flex items-center gap-1"
                             >
                               <Check className="w-3.5 h-3.5" />
@@ -351,22 +374,7 @@ export default function AdminRegistrationsPage() {
                           </div>
                         ) : (
                           <div className="inline-flex items-center gap-2 justify-end text-[11px] text-[#64748B]">
-                            <span>Recorded</span>
-                            <button
-                              onClick={() =>
-                                setRegistrations((prev) =>
-                                  prev.map((item) =>
-                                    item.id === r.id
-                                      ? { ...item, status: "Pending" as const }
-                                      : item
-                                  )
-                                )
-                              }
-                              className="text-[10px] text-[#F45113] hover:underline cursor-pointer"
-                              title="Revert to Pending"
-                            >
-                              Re-evaluate
-                            </button>
+                            <span className="font-semibold text-slate-500">Processed</span>
                           </div>
                         )}
                       </td>

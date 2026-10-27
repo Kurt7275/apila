@@ -8,6 +8,10 @@ data class User(
     val role: String = ROLE_RESIDENT, // "resident" or "personnel"
     val purok: String = "",
     val address: String = "",
+    val gender: String = "Male",
+    val birthdate: String = "1998-01-01",
+    val householdId: String = "",
+    val isVerified: Boolean = false,
     val createdAt: Long = System.currentTimeMillis()
 ) {
     companion object {

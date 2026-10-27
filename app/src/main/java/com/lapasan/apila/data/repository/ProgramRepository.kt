@@ -2,6 +2,7 @@ package com.lapasan.apila.data.repository
 
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.lapasan.apila.data.model.Program
 import com.lapasan.apila.util.Resource
 import kotlinx.coroutines.tasks.await
@@ -17,9 +18,67 @@ class ProgramRepository {
         }
     }
 
+    private var programsListener: ListenerRegistration? = null
+
     companion object {
         // Dynamic cache — populated live from Firestore
         val localPrograms = mutableListOf<Program>()
+    }
+
+    fun listenToPrograms(onUpdate: (List<Program>) -> Unit): ListenerRegistration? {
+        val db = firestore ?: return null
+        programsListener?.remove()
+
+        programsListener = db.collection("programs")
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    Log.w("ProgramRepo", "Real-time programs listen error: ${e.message}")
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val firestoreList = snapshot.documents.map { doc ->
+                        val slots = (doc.getLong("slots") ?: doc.getLong("maxCapacity") ?: 100L).toInt()
+                        val enrolled = (doc.getLong("enrolledCount") ?: doc.getLong("registeredCount") ?: 0L).toInt()
+                        val rawStatus = doc.getString("status")?.trim() ?: "Active"
+                        val mappedStatus = when (rawStatus.lowercase()) {
+                            "active", "published", "upcoming" -> Program.STATUS_PUBLISHED
+                            "completed", "closed" -> Program.STATUS_CLOSED
+                            "cancelled" -> Program.STATUS_CANCELLED
+                            else -> Program.STATUS_PUBLISHED
+                        }
+                        val rawSchedule = doc.getString("schedule") ?: doc.getString("startDate") ?: ""
+                        val datePart = if (rawSchedule.contains("T")) rawSchedule.split("T")[0] else rawSchedule
+                        val timePart = if (rawSchedule.contains("T")) {
+                            val t = rawSchedule.split("T").getOrNull(1)?.take(5)
+                            if (!t.isNullOrBlank()) t else "08:00 AM"
+                        } else {
+                            doc.getString("startTime") ?: "08:00 AM"
+                        }
+
+                        Program(
+                            id = doc.id,
+                            title = doc.getString("title") ?: "",
+                            category = doc.getString("category") ?: "Civic",
+                            description = doc.getString("description") ?: "",
+                            venue = doc.getString("location") ?: doc.getString("venue") ?: "Barangay Lapasan Multi-Purpose Hall",
+                            startDate = datePart,
+                            startTime = timePart,
+                            endDate = doc.getString("registrationDeadline") ?: doc.getString("endDate") ?: "",
+                            endTime = doc.getString("endTime") ?: "05:00 PM",
+                            registrationDeadline = doc.getString("registrationDeadline") ?: "",
+                            maxCapacity = slots,
+                            registeredCount = enrolled,
+                            status = mappedStatus,
+                            createdBy = doc.getString("officer") ?: doc.getString("createdBy") ?: "Admin"
+                        )
+                    }
+                    localPrograms.clear()
+                    localPrograms.addAll(firestoreList)
+                    onUpdate(firestoreList)
+                    Log.d("ProgramRepo", "Real-time programs snapshot: ${firestoreList.size} items")
+                }
+            }
+        return programsListener
     }
 
     suspend fun getPrograms(

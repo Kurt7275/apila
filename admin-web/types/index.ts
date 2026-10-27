@@ -55,7 +55,7 @@ export interface Resident {
   middleName?: string;
   birthdate: string;
   sex: "Male" | "Female";
-  civilStatus: "Single" | "Married" | "Widowed" | "Separated";
+  civilStatus: "Single" | "Married" | "Widowed" | "Separated" | "Head of Household" | string;
   email: string;
   phone: string;
   purok: string;

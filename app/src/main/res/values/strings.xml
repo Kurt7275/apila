@@ -84,6 +84,12 @@
         <item>Purok 10 - Coastal Zone</item>
     </string-array>
 
+    <!-- Genders -->
+    <string-array name="resident_genders">
+        <item>Female</item>
+        <item>Male</item>
+    </string-array>
+
     <!-- Program Categories -->
     <string-array name="program_categories">
         <item>Health &amp; Wellness</item>

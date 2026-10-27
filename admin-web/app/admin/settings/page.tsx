@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAdminProfile, AdminProfile } from "@/lib/context/AdminProfileContext";
+import { verifyOwnerPassword, updateOwnerPassword } from "@/lib/services/adminProfile";
 import { getAuditLogs, AuditLog } from "@/lib/services/auditLogs";
 import {
   getAdminAccounts,
@@ -47,6 +48,7 @@ import {
 
 export default function AdminSettingsPage() {
   const { profile, updateProfile, resetProfile } = useAdminProfile();
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   const [activeTab, setActiveTab] = useState<"PROFILE" | "ACCOUNTS" | "BARANGAY" | "SECURITY" | "AUDIT">("PROFILE");
   const [auditSearch, setAuditSearch] = useState("");
@@ -130,17 +132,11 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const handleUpdateCredentials = (e: React.FormEvent) => {
+  const handleUpdateCredentials = async (e: React.FormEvent) => {
     e.preventDefault();
     setSecurityMsg(null);
-    // Check against known owner passwords + any updated one stored in localStorage
-    const OWNER_PASSWORDS = ["admin2026", "123456", "admin"];
-    let storedPw: string | null = null;
-    try {
-      const saved = localStorage.getItem("apila_owner_credentials");
-      if (saved) storedPw = JSON.parse(saved).password;
-    } catch {}
-    const validCurrent = OWNER_PASSWORDS.includes(currentPassword) || (storedPw && storedPw === currentPassword);
+    // Verify current password against Firestore
+    const validCurrent = await verifyOwnerPassword(currentPassword);
     if (!validCurrent) {
       setSecurityMsg({ text: "Current password is incorrect.", type: "error" });
       return;
@@ -154,16 +150,15 @@ export default function AdminSettingsPage() {
       return;
     }
     try {
-      const saved = localStorage.getItem("apila_owner_credentials");
-      const creds = saved ? JSON.parse(saved) : {};
-      creds.password = newPassword;
-      localStorage.setItem("apila_owner_credentials", JSON.stringify(creds));
-    } catch {}
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setSecurityMsg({ text: "Password updated successfully. Use your new password on next login.", type: "success" });
-    setTimeout(() => setSecurityMsg(null), 5000);
+      await updateOwnerPassword(newPassword);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setSecurityMsg({ text: "Password updated successfully and saved to database. Use your new password on next login.", type: "success" });
+      setTimeout(() => setSecurityMsg(null), 5000);
+    } catch {
+      setSecurityMsg({ text: "Failed to update password. Please try again.", type: "error" });
+    }
   };
 
   const fetchAdmins = async () => {
@@ -261,15 +256,20 @@ export default function AdminSettingsPage() {
     });
   };
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateProfile(formData);
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 2500);
+    setIsSavingProfile(true);
+    try {
+      await updateProfile(formData);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2500);
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
-  const handleReset = () => {
-    resetProfile();
+  const handleReset = async () => {
+    await resetProfile();
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2000);
   };
@@ -791,7 +791,8 @@ export default function AdminSettingsPage() {
                 </span>
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-[#F45113] hover:bg-[#e0450b] text-white text-xs font-bold rounded-full transition-all shadow-md shadow-orange-500/25 hover:shadow-orange-500/35 active:scale-[0.99] flex items-center gap-2 cursor-pointer"
+                  disabled={isSavingProfile}
+                  className="px-6 py-3 bg-[#F45113] hover:bg-[#e0450b] text-white text-xs font-bold rounded-full transition-all shadow-md shadow-orange-500/25 hover:shadow-orange-500/35 active:scale-[0.99] flex items-center gap-2 cursor-pointer disabled:opacity-60"
                 >
                   <Save className="w-4 h-4" />
                   <span>Save Profile Configuration</span>
