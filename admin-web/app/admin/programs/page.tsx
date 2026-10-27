@@ -1,410 +1,404 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { mockPrograms } from "@/lib/mock-data/programs";
-import { Program, ProgramCategory, ProgramStatus } from "@/types";
-import { getPrograms, createProgram, updateProgram } from "@/lib/services/programs";
+import { ProgramCategory, ProgramStatus } from "@/types";
+import { subscribeToPrograms, createProgram, updateProgram, deleteProgram, Program } from "@/lib/services/programs";
+import { logAuditEvent } from "@/lib/services/auditLogs";
+import { useAdminProfile } from "@/lib/context/AdminProfileContext";
+import { ProgramStatusBadge } from "@/components/shared/StatusBadges";
 import {
   Plus,
   Search,
   Pencil,
-  Eye,
+  Trash2,
   Calendar,
   MapPin,
   Users,
-  Archive,
   CheckCircle,
   XCircle,
   Clock,
   Sparkles,
-  Smartphone,
   ChevronDown,
+  X,
+  AlertTriangle,
+  Wifi,
 } from "lucide-react";
-import { ProgramStatusBadge } from "@/components/shared/StatusBadges";
+
+const CATEGORIES: ProgramCategory[] = [
+  "Health",
+  "Education",
+  "Livelihood",
+  "Senior Citizens",
+  "Youth",
+  "Women",
+  "Environment",
+  "Disaster Risk",
+];
+
+const STATUS_OPTIONS: ProgramStatus[] = ["Active", "Upcoming", "Completed", "Cancelled"];
+
+const CATEGORY_COLORS: Record<string, string> = {
+  Health: "bg-emerald-100 text-emerald-700",
+  Education: "bg-blue-100 text-blue-700",
+  Livelihood: "bg-amber-100 text-amber-700",
+  "Senior Citizen": "bg-purple-100 text-purple-700",
+  Youth: "bg-cyan-100 text-cyan-700",
+  Women: "bg-pink-100 text-pink-700",
+  Environment: "bg-lime-100 text-lime-700",
+  "Disaster Risk": "bg-rose-100 text-rose-700",
+};
+
+const emptyForm = {
+  title: "",
+  category: "Health" as ProgramCategory,
+  description: "",
+  schedule: "",
+  location: "Barangay Lapasan Multi-Purpose Hall",
+  registrationDeadline: "",
+  slots: 50,
+  officer: "",
+  status: "Active" as ProgramStatus,
+};
 
 export default function AdminProgramsPage() {
-  const [programs, setPrograms] = useState<Program[]>(mockPrograms);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
+  const { profile } = useAdminProfile();
+  const officerName = profile?.name ?? "Admin Officer";
+
+  // ── Live Data ──────────────────────────────────────────────────────────────
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [isLive, setIsLive] = useState(false);
 
   useEffect(() => {
-    async function fetchLivePrograms() {
-      try {
-        const live = await getPrograms();
-        const mapped: Program[] = live.map((p) => ({
-          id: p.id || `prog-${Date.now()}`,
-          title: p.title,
-          category: (p.category as ProgramCategory) || "Health",
-          description: p.description || "",
-          schedule: p.schedule || "",
-          location: p.location || "Barangay Lapasan Multi-Purpose Hall",
-          slots: Number(p.slots) || 100,
-          enrolled: Number(p.enrolledCount) || 0,
-          status: (p.status as ProgramStatus) || "Active",
-          officer: p.officer || "Barangay Officer",
-          benefits: ["Official barangay certificate", "Community program coverage"],
-          requirements: ["Barangay Lapasan Resident ID"],
-          startDate: p.schedule || new Date().toISOString().split("T")[0],
-          endDate: p.registrationDeadline || "2026-11-15",
-          tags: [p.category ? p.category.toLowerCase() : "civic"],
-        }));
-        setPrograms(mapped);
-      } catch (err) {
-        console.warn("Using offline programs cache:", err);
-      }
-    }
-    fetchLivePrograms();
+    const unsub = subscribeToPrograms((list) => {
+      setPrograms(list);
+      setIsLive(true);
+    });
+    return unsub;
   }, []);
 
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProgram, setEditingProgram] = useState<Program | null>(null);
+  // ── Filters ────────────────────────────────────────────────────────────────
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
 
-  // Form State
-  const [formData, setFormData] = useState({
-    title: "",
-    category: "Health" as ProgramCategory,
-    description: "",
-    schedule: "",
-    location: "Barangay Lapasan Multi-Purpose Hall",
-    registrationDeadline: "2026-11-15",
-    slots: 100,
-    officer: "Barangay Health Officer",
-    status: "Active" as ProgramStatus,
+  const filtered = programs.filter((p) => {
+    const matchSearch =
+      search.trim() === "" ||
+      p.title.toLowerCase().includes(search.toLowerCase()) ||
+      p.description?.toLowerCase().includes(search.toLowerCase()) ||
+      p.officer?.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === "ALL" || p.status === statusFilter;
+    const matchCategory = categoryFilter === "ALL" || p.category === categoryFilter;
+    return matchSearch && matchStatus && matchCategory;
   });
 
-  const openCreateModal = () => {
+  // ── Modal ─────────────────────────────────────────────────────────────────
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProgram, setEditingProgram] = useState<Program | null>(null);
+  const [formData, setFormData] = useState(emptyForm);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  const openCreate = () => {
     setEditingProgram(null);
-    setFormData({
-      title: "",
-      category: "Health",
-      description: "",
-      schedule: "Saturdays, 8:00 AM – 12:00 PM",
-      location: "Barangay Lapasan Multi-Purpose Hall",
-      registrationDeadline: "2026-11-15",
-      slots: 100,
-      officer: "Barangay Health Officer",
-      status: "Active",
-    });
+    setFormData(emptyForm);
+    setSaveError("");
     setIsModalOpen(true);
   };
 
-  const openEditModal = (p: Program) => {
+  const openEdit = (p: Program) => {
     setEditingProgram(p);
     setFormData({
       title: p.title,
-      category: p.category,
-      description: p.description,
-      schedule: p.schedule,
-      location: p.location,
-      registrationDeadline: p.endDate || "2026-11-15",
-      slots: p.slots,
-      officer: p.officer,
-      status: p.status,
+      category: (p.category as ProgramCategory) ?? "Health",
+      description: p.description ?? "",
+      schedule: p.schedule ?? "",
+      location: p.location ?? "Barangay Lapasan Multi-Purpose Hall",
+      registrationDeadline: (p as any).registrationDeadline ?? "",
+      slots: p.slots ?? 50,
+      officer: p.officer ?? "",
+      status: (p.status as ProgramStatus) ?? "Active",
     });
+    setSaveError("");
     setIsModalOpen(true);
   };
 
-  const handleSaveProgram = async (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim()) return;
-
-    if (editingProgram) {
-      setPrograms((prev) =>
-        prev.map((item) =>
-          item.id === editingProgram.id
-            ? {
-                ...item,
-                ...formData,
-                endDate: formData.registrationDeadline,
-              }
-            : item
-        )
-      );
-      try {
-        await updateProgram(editingProgram.id, {
-          title: formData.title.trim(),
-          category: formData.category,
-          description: formData.description.trim(),
-          schedule: formData.schedule.trim(),
-          location: formData.location.trim(),
-          registrationDeadline: formData.registrationDeadline,
-          slots: Number(formData.slots),
-          officer: formData.officer.trim(),
-          status: formData.status,
-        });
-      } catch (err) {
-        console.warn("Firestore update skipped:", err);
-      }
-    } else {
-      let createdDocId = `prog-${Date.now()}`;
-      try {
-        const id = await createProgram({
-          title: formData.title.trim(),
-          category: formData.category,
-          description: formData.description.trim(),
-          schedule: formData.schedule.trim(),
-          location: formData.location.trim(),
-          registrationDeadline: formData.registrationDeadline,
-          slots: Number(formData.slots),
-          enrolledCount: 0,
-          officer: formData.officer.trim(),
-          status: formData.status,
-        });
-        if (id) createdDocId = id;
-      } catch (err) {
-        console.warn("Firestore create skipped:", err);
-      }
-
-      const newProgram: Program = {
-        id: createdDocId,
+    setIsSaving(true);
+    setSaveError("");
+    try {
+      const payload = {
         title: formData.title.trim(),
         category: formData.category,
         description: formData.description.trim(),
         schedule: formData.schedule.trim(),
         location: formData.location.trim(),
+        registrationDeadline: formData.registrationDeadline,
         slots: Number(formData.slots),
-        enrolled: 0,
-        status: formData.status,
         officer: formData.officer.trim(),
-        benefits: ["Official barangay support", "Community services"],
-        requirements: ["Barangay Lapasan Resident ID"],
-        startDate: new Date().toISOString().split("T")[0],
-        endDate: formData.registrationDeadline,
-        tags: [formData.category.toLowerCase()],
+        status: formData.status,
       };
-      setPrograms([newProgram, ...programs]);
-    }
-
-    setIsModalOpen(false);
-  };
-
-  const handleUpdateStatus = async (id: string, newStatus: ProgramStatus) => {
-    setPrograms((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, status: newStatus } : p))
-    );
-    try {
-      await updateProgram(id, { status: newStatus });
+      if (editingProgram?.id) {
+        await updateProgram(editingProgram.id, payload);
+        await logAuditEvent({
+          officer: officerName,
+          action: `Updated program "${formData.title}"`,
+          category: "Programs",
+          ipTerminal: "Admin Web",
+          status: "Success",
+        });
+      } else {
+        const newId = await createProgram({ ...payload, enrolledCount: 0 });
+        await logAuditEvent({
+          officer: officerName,
+          action: `Created program "${formData.title}" (ID: ${newId})`,
+          category: "Programs",
+          ipTerminal: "Admin Web",
+          status: "Success",
+        });
+      }
+      setIsModalOpen(false);
     } catch (err) {
-      console.warn("Firestore status update skipped:", err);
+      setSaveError("Failed to save. Check your connection and try again.");
+      console.error(err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const filteredPrograms = programs.filter((p) => {
-    const matchesSearch =
-      p.title.toLowerCase().includes(search.toLowerCase()) ||
-      p.category.toLowerCase().includes(search.toLowerCase()) ||
-      p.location.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "ALL" || p.status === statusFilter;
-    const matchesCategory = categoryFilter === "ALL" || p.category === categoryFilter;
-    return matchesSearch && matchesStatus && matchesCategory;
-  });
+  // ── Delete ─────────────────────────────────────────────────────────────────
+  const [deleteTarget, setDeleteTarget] = useState<Program | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
+  const confirmDelete = async () => {
+    if (!deleteTarget?.id) return;
+    setIsDeleting(true);
+    try {
+      await deleteProgram(deleteTarget.id);
+      await logAuditEvent({
+        officer: officerName,
+        action: `Deleted program "${deleteTarget.title}"`,
+        category: "Programs",
+        ipTerminal: "Admin Web",
+        status: "Success",
+      });
+      setDeleteTarget(null);
+    } catch {
+      // keep modal open on error
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // ── Stats ──────────────────────────────────────────────────────────────────
+  const totalSlots = programs.reduce((sum, p) => sum + (p.slots ?? 0), 0);
+  const totalEnrolled = programs.reduce((sum, p) => sum + (p.enrolledCount ?? 0), 0);
+  const activeCount = programs.filter((p) => p.status === "Active").length;
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1400px] mx-auto selection:bg-[#F45113]/15 selection:text-[#F45113]">
-      {/* ── Page Header ── */}
+    <div className="p-6 space-y-6 bg-[#FFF9F3] min-h-screen">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
-            Programs
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-extrabold text-[#0F172A]">Programs</h1>
+            {isLive && (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">
+                <Wifi className="w-3 h-3" /> LIVE
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-[#64748B] mt-0.5">
+            {programs.length} program{programs.length !== 1 ? "s" : ""} · {activeCount} active ·{" "}
+            {totalEnrolled}/{totalSlots} slots filled
+          </p>
         </div>
-
         <button
-          onClick={openCreateModal}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#F45113] hover:bg-[#d4430e] text-white text-xs font-bold rounded-2xl shadow-md shadow-orange-500/20 transition-all cursor-pointer self-start sm:self-auto"
+          onClick={openCreate}
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#F45113] hover:bg-[#d4430e] text-white text-sm font-bold rounded-2xl shadow-md shadow-orange-500/20 transition-colors cursor-pointer"
         >
           <Plus className="w-4 h-4" />
-          <span>New Program</span>
+          New Program
         </button>
       </div>
 
-      {/* ── Quick KPI Strip ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      {/* Stats Row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Active Programs", count: programs.filter((p) => p.status === "Active").length, color: "text-[#F45113]" },
-          { label: "Upcoming", count: programs.filter((p) => p.status === "Upcoming").length, color: "text-[#0F172A]" },
-          { label: "Completed", count: programs.filter((p) => p.status === "Completed").length, color: "text-emerald-600" },
-          { label: "Cancelled / Archived", count: programs.filter((p) => p.status === "Cancelled").length, color: "text-[#64748B]" },
-        ].map((item) => (
-          <div key={item.label} className="bg-white rounded-3xl border border-[#ECE7DF] p-4 shadow-sm">
-            <p className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">{item.label}</p>
-            <p className={`text-2xl font-extrabold ${item.color} mt-1`}>{item.count}</p>
+          { label: "Total Programs", value: programs.length, icon: Sparkles, color: "text-[#F45113]" },
+          { label: "Active", value: activeCount, icon: CheckCircle, color: "text-emerald-600" },
+          { label: "Total Slots", value: totalSlots, icon: Users, color: "text-blue-600" },
+          { label: "Enrolled", value: totalEnrolled, icon: Users, color: "text-purple-600" },
+        ].map(({ label, value, icon: Icon, color }) => (
+          <div key={label} className="bg-white rounded-3xl border border-[#ECE7DF] px-4 py-3 flex items-center gap-3">
+            <div className={`p-2 rounded-xl bg-[#FFF9F3] ${color}`}>
+              <Icon className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-xl font-extrabold text-[#0F172A]">{value}</p>
+              <p className="text-[10px] font-semibold text-[#64748B] uppercase tracking-wide">{label}</p>
+            </div>
           </div>
         ))}
       </div>
 
-      {/* ── Filters & Search ── */}
-      <div className="bg-white rounded-3xl border border-[#ECE7DF] p-4 sm:p-5 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3 flex-1">
-          {/* Search */}
-          <div className="relative min-w-[240px] flex-1 max-w-md">
-            <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search programs by title or venue..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-full border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113]"
-            />
-          </div>
-
-          {/* Status Pills */}
-          <div className="flex items-center p-1 rounded-full bg-[#FFF9F3] border border-[#ECE7DF]">
-            {(["ALL", "Active", "Upcoming", "Completed", "Cancelled"] as const).map((st) => (
-              <button
-                key={st}
-                onClick={() => setStatusFilter(st)}
-                className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
-                  statusFilter === st
-                    ? "bg-[#0F172A] text-white shadow-xs"
-                    : "text-[#64748B] hover:text-[#0F172A]"
-                }`}
-              >
-                {st === "ALL" ? "All Programs" : st}
-              </button>
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
+          <input
+            type="text"
+            placeholder="Search programs, officers…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-[#ECE7DF] bg-white text-sm text-[#0F172A] outline-none focus:border-[#F45113]"
+          />
+        </div>
+        <div className="relative">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="appearance-none pl-3.5 pr-8 py-2.5 rounded-2xl border border-[#ECE7DF] bg-white text-sm font-semibold text-[#0F172A] outline-none focus:border-[#F45113] cursor-pointer"
+          >
+            <option value="ALL">All Statuses</option>
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s} value={s}>{s}</option>
             ))}
-          </div>
+          </select>
+          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#94A3B8] pointer-events-none" />
         </div>
-
-        <span className="text-xs text-[#64748B] font-semibold">
-          Showing {filteredPrograms.length} of {programs.length} programs
-        </span>
-      </div>
-
-      {/* ── Programs Roster Table ── */}
-      <div className="bg-white rounded-3xl border border-[#ECE7DF] shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-[#FFF9F3]/70 border-b border-[#ECE7DF] text-[10px] font-extrabold text-[#64748B] uppercase tracking-wider">
-                <th className="py-3 px-5">Program Title & Venue</th>
-                <th className="py-3 px-4">Category</th>
-                <th className="py-3 px-4">Schedule</th>
-                <th className="py-3 px-4">Participant Capacity</th>
-                <th className="py-3 px-4 text-center">Status</th>
-                <th className="py-3 px-5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#ECE7DF]">
-              {filteredPrograms.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-[#64748B]">
-                    <p className="font-bold text-sm text-[#0F172A]">No programs found</p>
-                    <p className="text-xs text-[#64748B] mt-0.5">Try adjusting your search criteria.</p>
-                  </td>
-                </tr>
-              ) : (
-                filteredPrograms.map((p) => {
-                  const percent = Math.min(100, Math.round((p.enrolled / p.slots) * 100));
-                  return (
-                    <tr key={p.id} className="hover:bg-[#FFF9F3]/40 transition-colors group">
-                      {/* Title & Venue */}
-                      <td className="py-3.5 px-5 max-w-xs">
-                        <Link
-                          href={`/admin/programs/${p.id}`}
-                          className="font-bold text-[#0F172A] group-hover:text-[#F45113] transition-colors block text-sm"
-                        >
-                          {p.title}
-                        </Link>
-                        <p className="text-[11px] text-[#64748B] mt-0.5 truncate flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-[#94A3B8]" />
-                          {p.location}
-                        </p>
-                        <p className="text-[10px] text-[#94A3B8] mt-0.5">
-                          Officer: {p.officer}
-                        </p>
-                      </td>
-
-                      {/* Category */}
-                      <td className="py-3.5 px-4">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FFF9F3] text-[#F45113] border border-[#ECE7DF]">
-                          {p.category}
-                        </span>
-                      </td>
-
-                      {/* Schedule */}
-                      <td className="py-3.5 px-4 text-[#475569]">
-                        <p className="font-semibold text-[#0F172A]">{p.schedule}</p>
-                        <p className="text-[10px] text-[#94A3B8]">
-                          Deadline: {p.endDate || "Ongoing"}
-                        </p>
-                      </td>
-
-                      {/* Capacity Meter */}
-                      <td className="py-3.5 px-4">
-                        <div className="w-36 space-y-1">
-                          <div className="flex items-center justify-between text-[10px] text-[#64748B]">
-                            <span>{p.enrolled} / {p.slots} slots</span>
-                            <span className="font-bold text-[#0F172A]">{percent}%</span>
-                          </div>
-                          <div className="w-full bg-[#FFF9F3] h-1.5 rounded-full overflow-hidden border border-[#ECE7DF]">
-                            <div
-                              className="bg-[#F45113] h-full rounded-full transition-all"
-                              style={{ width: `${percent}%` }}
-                            />
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Status */}
-                      <td className="py-3.5 px-4 text-center">
-                        <ProgramStatusBadge status={p.status} />
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-3.5 px-5 text-right">
-                        <div className="inline-flex items-center gap-1.5 justify-end">
-                          <Link
-                            href={`/admin/programs/${p.id}`}
-                            className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[#FFF9F3] hover:bg-[#F45113] text-[#0F172A] hover:text-white border border-[#ECE7DF] hover:border-[#F45113] transition-colors"
-                            title="View Roster & Details"
-                          >
-                            <Eye className="w-3.5 h-3.5 inline mr-1" />
-                            View
-                          </Link>
-                          <button
-                            onClick={() => openEditModal(p)}
-                            className="p-1.5 rounded-xl text-slate-500 hover:text-[#0F172A] hover:bg-[#FFF9F3] border border-transparent hover:border-[#ECE7DF] transition-colors cursor-pointer"
-                            title="Edit Details"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+        <div className="relative">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="appearance-none pl-3.5 pr-8 py-2.5 rounded-2xl border border-[#ECE7DF] bg-white text-sm font-semibold text-[#0F172A] outline-none focus:border-[#F45113] cursor-pointer"
+          >
+            <option value="ALL">All Categories</option>
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#94A3B8] pointer-events-none" />
         </div>
       </div>
 
-      {/* ── Create / Edit Program Modal ── */}
+      {/* Program Cards Grid */}
+      {filtered.length === 0 ? (
+        <div className="text-center py-20 text-[#94A3B8]">
+          <Sparkles className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p className="font-semibold">
+            {programs.length === 0 ? "No programs yet — create your first one!" : "No programs match your filters."}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filtered.map((p) => {
+            const fillPct = p.slots > 0 ? Math.min(100, Math.round(((p.enrolledCount ?? 0) / p.slots) * 100)) : 0;
+            const isFull = (p.enrolledCount ?? 0) >= p.slots;
+            return (
+              <div
+                key={p.id}
+                className="bg-white rounded-3xl border border-[#ECE7DF] p-5 flex flex-col gap-3 hover:shadow-md transition-shadow"
+              >
+                {/* Top row */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-extrabold text-[#0F172A] text-sm leading-snug line-clamp-2">{p.title}</h3>
+                    <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${CATEGORY_COLORS[p.category] ?? "bg-gray-100 text-gray-600"}`}>
+                      {p.category}
+                    </span>
+                  </div>
+                  <ProgramStatusBadge status={p.status as ProgramStatus} />
+                </div>
+
+                {/* Description */}
+                {p.description && (
+                  <p className="text-xs text-[#64748B] line-clamp-2 leading-relaxed">{p.description}</p>
+                )}
+
+                {/* Meta */}
+                <div className="space-y-1.5">
+                  {p.schedule && (
+                    <div className="flex items-center gap-2 text-xs text-[#64748B]">
+                      <Calendar className="w-3.5 h-3.5 flex-shrink-0 text-[#F45113]" />
+                      <span className="truncate">{p.schedule}</span>
+                    </div>
+                  )}
+                  {p.location && (
+                    <div className="flex items-center gap-2 text-xs text-[#64748B]">
+                      <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-[#F45113]" />
+                      <span className="truncate">{p.location}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Capacity bar */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-[10px] font-bold text-[#64748B]">
+                    <span className="flex items-center gap-1">
+                      <Users className="w-3 h-3" /> Enrollment
+                    </span>
+                    <span className={isFull ? "text-rose-600" : "text-[#0F172A]"}>
+                      {p.enrolledCount ?? 0}/{p.slots} {isFull && "· FULL"}
+                    </span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-[#ECE7DF] overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${isFull ? "bg-rose-500" : "bg-[#F45113]"}`}
+                      style={{ width: `${fillPct}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2 pt-1 border-t border-[#ECE7DF]">
+                  <button
+                    onClick={() => openEdit(p)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-2xl bg-[#FFF9F3] hover:bg-orange-50 text-[#F45113] text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Edit
+                  </button>
+                  <button
+                    onClick={() => setDeleteTarget(p)}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Create / Edit Modal ─────────────────────────────────────────────── */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl border border-[#ECE7DF] max-w-xl w-full p-6 sm:p-8 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-[#ECE7DF]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-[#ECE7DF]">
               <div>
                 <h2 className="text-lg font-extrabold text-[#0F172A]">
-                  {editingProgram ? "Update Community Program" : "Create Community Program"}
+                  {editingProgram ? "Edit Program" : "New Barangay Program"}
                 </h2>
-                <p className="text-xs text-[#64748B]">
-                  Published programs become immediately accessible to residents in the APILA mobile app.
+                <p className="text-xs text-[#64748B] mt-0.5">
+                  {editingProgram ? "Update program details in Firestore" : "Publish a new program to the resident app"}
                 </p>
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                className="p-2 rounded-xl hover:bg-[#FFF9F3] text-[#64748B] cursor-pointer"
               >
-                &times;
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveProgram} className="space-y-4">
+            {/* Modal Form */}
+            <form onSubmit={handleSave} className="p-6 space-y-4">
+              {/* Title */}
               <div className="space-y-1">
                 <label className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
                   Program Title *
@@ -412,92 +406,73 @@ export default function AdminProgramsPage() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Free Medical and Dental Checkup"
+                  placeholder="e.g. Libreng Gamot para sa Lapasan"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113]"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-sm font-semibold text-[#0F172A] outline-none focus:border-[#F45113]"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Category + Status */}
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-                    Category
-                  </label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        category: e.target.value as ProgramCategory,
-                      })
-                    }
-                    className="w-full px-3.5 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113] cursor-pointer"
-                  >
-                    {[
-                      "Health",
-                      "Livelihood",
-                      "Youth",
-                      "Senior Citizens",
-                      "Sports",
-                      "Scholarship",
-                      "Environment",
-                      "Disaster Relief",
-                    ].map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">Category *</label>
+                  <div className="relative">
+                    <select
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value as ProgramCategory })}
+                      className="w-full appearance-none px-3.5 pr-8 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113] cursor-pointer"
+                    >
+                      {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#94A3B8] pointer-events-none" />
+                  </div>
                 </div>
-
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-                    Participant Capacity (Slots) *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min={1}
-                    value={formData.slots}
-                    onChange={(e) => setFormData({ ...formData, slots: Number(e.target.value) })}
-                    className="w-full px-4 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113]"
-                  />
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">Status</label>
+                  <div className="relative">
+                    <select
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value as ProgramStatus })}
+                      className="w-full appearance-none px-3.5 pr-8 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113] cursor-pointer"
+                    >
+                      {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#94A3B8] pointer-events-none" />
+                  </div>
                 </div>
               </div>
 
+              {/* Description */}
               <div className="space-y-1">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-                  Program Description *
-                </label>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">Description</label>
                 <textarea
-                  required
                   rows={3}
-                  placeholder="Detail the scope, services, and objective of this barangay program..."
+                  placeholder="Brief description of this program's purpose and benefits…"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-medium text-[#0F172A] outline-none focus:border-[#F45113] resize-none"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113] resize-none"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Schedule + Deadline */}
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-                    Schedule & Frequency *
+                    Schedule *
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Every 2nd Saturday, 8:00 AM"
+                    placeholder="e.g. Every Saturday, 8:00 AM"
                     value={formData.schedule}
                     onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113]"
                   />
                 </div>
-
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-                    Registration Deadline
+                    Reg. Deadline
                   </label>
                   <input
                     type="date"
@@ -508,7 +483,8 @@ export default function AdminProgramsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Location + Slots */}
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
                     Location / Venue *
@@ -522,37 +498,41 @@ export default function AdminProgramsPage() {
                     className="w-full px-4 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113]"
                   />
                 </div>
-
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-                    Lead Program Officer
+                    Max Slots *
                   </label>
                   <input
-                    type="text"
-                    placeholder="e.g. Dr. Maria Santos"
-                    value={formData.officer}
-                    onChange={(e) => setFormData({ ...formData, officer: e.target.value })}
+                    type="number"
+                    required
+                    min={1}
+                    max={9999}
+                    value={formData.slots}
+                    onChange={(e) => setFormData({ ...formData, slots: Number(e.target.value) })}
                     className="w-full px-4 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113]"
                   />
                 </div>
               </div>
 
+              {/* Officer */}
               <div className="space-y-1">
                 <label className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-                  Program Lifecycle Status
+                  Lead Program Officer
                 </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as ProgramStatus })}
-                  className="w-full px-3.5 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113] cursor-pointer"
-                >
-                  <option value="Active">Active (Published to Resident Mobile App)</option>
-                  <option value="Upcoming">Upcoming (Scheduled)</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Cancelled">Cancelled</option>
-                </select>
+                <input
+                  type="text"
+                  placeholder="e.g. Dr. Maria Santos"
+                  value={formData.officer}
+                  onChange={(e) => setFormData({ ...formData, officer: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113]"
+                />
               </div>
 
+              {saveError && (
+                <p className="text-xs text-rose-600 font-semibold bg-rose-50 px-3 py-2 rounded-xl">{saveError}</p>
+              )}
+
+              {/* Footer buttons */}
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#ECE7DF]">
                 <button
                   type="button"
@@ -563,12 +543,53 @@ export default function AdminProgramsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-[#F45113] hover:bg-[#d4430e] text-white text-xs font-bold rounded-2xl shadow-md shadow-orange-500/20 cursor-pointer"
+                  disabled={isSaving}
+                  className="px-6 py-2.5 bg-[#F45113] hover:bg-[#d4430e] disabled:opacity-60 text-white text-xs font-bold rounded-2xl shadow-md shadow-orange-500/20 cursor-pointer transition-colors"
                 >
-                  {editingProgram ? "Update Program" : "Publish Program"}
+                  {isSaving ? "Saving…" : editingProgram ? "Update Program" : "Publish Program"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Confirm Modal ────────────────────────────────────────────── */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-rose-100 rounded-2xl">
+                <AlertTriangle className="w-6 h-6 text-rose-600" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-[#0F172A]">Delete Program?</h3>
+                <p className="text-xs text-[#64748B] mt-0.5">This cannot be undone.</p>
+              </div>
+            </div>
+            <p className="text-sm text-[#0F172A] bg-[#FFF9F3] rounded-2xl px-4 py-3 font-semibold">
+              "{deleteTarget.title}"
+            </p>
+            {(deleteTarget.enrolledCount ?? 0) > 0 && (
+              <p className="text-xs text-amber-700 bg-amber-50 rounded-xl px-3 py-2 font-semibold">
+                ⚠ {deleteTarget.enrolledCount} resident{(deleteTarget.enrolledCount ?? 0) !== 1 ? "s" : ""} are enrolled. Their registrations will be orphaned.
+              </p>
+            )}
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 py-2.5 rounded-2xl border border-[#ECE7DF] text-xs font-bold text-[#64748B] hover:text-[#0F172A] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white text-xs font-bold cursor-pointer transition-colors"
+              >
+                {isDeleting ? "Deleting…" : "Yes, Delete"}
+              </button>
+            </div>
           </div>
         </div>
       )}

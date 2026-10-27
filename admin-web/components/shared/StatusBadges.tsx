@@ -1,4 +1,4 @@
-import { Program, ProgramCategory, ProgramStatus, RegistrationStatus } from "@/types";
+﻿import { Program, ProgramCategory, ProgramStatus, RegistrationStatus } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
@@ -55,6 +55,21 @@ const categoryConfig: Record<
   "Disaster Relief": {
     label: "Disaster Relief",
     className: "bg-yellow-100 text-yellow-700 border-yellow-200",
+    Icon: Shield,
+  },
+  Education: {
+    label: "Education",
+    className: "bg-sky-100 text-sky-700 border-sky-200",
+    Icon: GraduationCap,
+  },
+  Women: {
+    label: "Women",
+    className: "bg-pink-100 text-pink-700 border-pink-200",
+    Icon: Users,
+  },
+  "Disaster Risk": {
+    label: "Disaster Risk",
+    className: "bg-rose-100 text-rose-700 border-rose-200",
     Icon: Shield,
   },
 };
@@ -148,3 +163,4 @@ export function SlotProgress({
     </div>
   );
 }
+

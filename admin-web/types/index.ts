@@ -4,12 +4,15 @@
 
 export type ProgramCategory =
   | "Health"
+  | "Education"
   | "Livelihood"
   | "Youth"
   | "Senior Citizens"
   | "Sports"
   | "Scholarship"
+  | "Women"
   | "Environment"
+  | "Disaster Risk"
   | "Disaster Relief";
 
 export type ProgramStatus = "Active" | "Upcoming" | "Completed" | "Cancelled";
