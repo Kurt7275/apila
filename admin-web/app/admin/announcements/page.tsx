@@ -1,548 +1,531 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getAnnouncements, createAnnouncement } from "@/lib/services/announcements";
+import {
+  subscribeToAnnouncements,
+  createAnnouncement,
+  deleteAnnouncement,
+  Announcement,
+} from "@/lib/services/announcements";
+import { subscribeToResidents } from "@/lib/services/residents";
+import { logAuditEvent } from "@/lib/services/auditLogs";
+import { useAdminProfile } from "@/lib/context/AdminProfileContext";
 import {
   Bell,
   Send,
   Plus,
-  AlertTriangle,
   Megaphone,
-  Radio,
   Smartphone,
   Search,
-  CheckCircle2,
   Trash2,
   Clock,
   Users,
   X,
-  ExternalLink,
   ShieldAlert,
+  Wifi,
+  AlertTriangle,
+  ChevronDown,
+  CheckCircle2,
+  Info,
+  Zap,
 } from "lucide-react";
-import { mockNotifications } from "@/lib/mock-data/notifications";
 
-export interface BarangayAnnouncement {
-  id: string;
-  title: string;
-  category: "General Advisory" | "Program Update" | "Emergency / DRRM" | "Health Advisory" | "Community Service";
-  priority: "Normal" | "Important" | "Urgent";
-  targetAudience: string;
-  message: string;
-  createdAt: string;
-  pushSent: boolean;
-  reachCount: number;
+// ── Types ──────────────────────────────────────────────────────────────────
+type Category =
+  | "General Advisory"
+  | "Program Update"
+  | "Emergency / DRRM"
+  | "Health Advisory"
+  | "Community Service";
+
+type Priority = "Normal" | "Important" | "Urgent";
+
+const CATEGORIES: Category[] = [
+  "General Advisory",
+  "Program Update",
+  "Emergency / DRRM",
+  "Health Advisory",
+  "Community Service",
+];
+
+const TARGET_AUDIENCES = [
+  "All Residents",
+  "Purok 1 - 5 (Coastal)",
+  "Purok 6 - 10 (Upland)",
+  "Senior Citizens",
+  "Youth (15 - 30 yrs)",
+  "Enrolled Program Participants",
+];
+
+const PRIORITY_CONFIG: Record<Priority, { label: string; className: string; icon: React.ReactNode }> = {
+  Normal: {
+    label: "Normal",
+    className: "bg-slate-100 text-slate-600 border-slate-200",
+    icon: <Info className="w-3 h-3" />,
+  },
+  Important: {
+    label: "Important",
+    className: "bg-amber-100 text-amber-700 border-amber-200",
+    icon: <Bell className="w-3 h-3" />,
+  },
+  Urgent: {
+    label: "URGENT",
+    className: "bg-rose-100 text-rose-700 border-rose-200",
+    icon: <ShieldAlert className="w-3 h-3" />,
+  },
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  "General Advisory": "bg-blue-100 text-blue-700",
+  "Program Update": "bg-purple-100 text-purple-700",
+  "Emergency / DRRM": "bg-rose-100 text-rose-700",
+  "Health Advisory": "bg-emerald-100 text-emerald-700",
+  "Community Service": "bg-amber-100 text-amber-700",
+};
+
+const emptyForm = {
+  title: "",
+  category: "General Advisory" as Category,
+  priority: "Normal" as Priority,
+  targetAudience: "All Residents",
+  message: "",
+};
+
+function timeAgo(ts: Announcement["createdAt"]): string {
+  if (!ts) return "Just now";
+  const ms = ts.seconds * 1000;
+  const diff = Date.now() - ms;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
 }
 
-const INITIAL_ANNOUNCEMENTS: BarangayAnnouncement[] = [];
-
+// ── Component ──────────────────────────────────────────────────────────────
 export default function AdminAnnouncementsPage() {
-  const [announcements, setAnnouncements] = useState<BarangayAnnouncement[]>(INITIAL_ANNOUNCEMENTS);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
-  const [priorityFilter, setPriorityFilter] = useState<string>("ALL");
-  const [registeredUserCount, setRegisteredUserCount] = useState<number>(0);
+  const { profile } = useAdminProfile();
+  const officerName = profile?.name ?? "Admin Officer";
 
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [successBanner, setSuccessBanner] = useState<string | null>(null);
+  // ── Live Data ──────────────────────────────────────────────────────────
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [residentCount, setResidentCount] = useState(0);
+  const [isLive, setIsLive] = useState(false);
 
-  // Form State
-  const [formData, setFormData] = useState<{
-    title: string;
-    category: BarangayAnnouncement["category"];
-    priority: BarangayAnnouncement["priority"];
-    targetAudience: string;
-    message: string;
-    pushNotification: boolean;
-  }>({
-    title: "",
-    category: "General Advisory",
-    priority: "Normal",
-    targetAudience: "All Residents",
-    message: "",
-    pushNotification: true,
-  });
-
-  // Load from Firestore
   useEffect(() => {
-    async function fetchLiveAnnouncements() {
-      try {
-        const live = await getAnnouncements();
-
-        // Fetch real registered user count from Firestore
-        let userCount = 0;
-        try {
-          const { collection: col, getDocs: gd } = await import("firebase/firestore");
-          const { db: firedb } = await import("@/lib/firebase");
-          const usersSnap = await gd(col(firedb, "users"));
-          userCount = usersSnap.size;
-          setRegisteredUserCount(userCount);
-        } catch {
-          // fallback: count registrations uniquely
-          try {
-            const { collection: col, getDocs: gd } = await import("firebase/firestore");
-            const { db: firedb } = await import("@/lib/firebase");
-            const regsSnap = await gd(col(firedb, "registrations"));
-            const uniqueUsers = new Set(regsSnap.docs.map((d) => d.data().residentId || d.data().userId)).size;
-            userCount = uniqueUsers;
-            setRegisteredUserCount(uniqueUsers);
-          } catch {}
-        }
-
-        const mapped: BarangayAnnouncement[] = live.map((a) => ({
-          id: a.id || `anc-${Date.now()}`,
-          title: a.title,
-          category: (a.category as BarangayAnnouncement["category"]) || "General Advisory",
-          priority: (a.priority as BarangayAnnouncement["priority"]) || "Normal",
-          targetAudience: a.targetAudience || "All Residents",
-          message: a.message,
-          createdAt: a.createdAt ? new Date(a.createdAt.seconds * 1000).toISOString() : new Date().toISOString(),
-          pushSent: a.pushNotification ?? true,
-          reachCount: a.targetAudience?.includes("All") ? userCount : Math.round(userCount * 0.3),
-        }));
-        setAnnouncements(mapped);
-        return;
-      } catch (err) {
-        console.warn("Using offline announcements cache:", err);
-      }
-      try {
-        const saved = localStorage.getItem("apila_announcements");
-        if (saved) setAnnouncements(JSON.parse(saved));
-      } catch {}
-    }
-    fetchLiveAnnouncements();
+    const unsubAnn = subscribeToAnnouncements((list) => {
+      setAnnouncements(list);
+      setIsLive(true);
+    });
+    const unsubRes = subscribeToResidents((list) => {
+      setResidentCount(list.length);
+    });
+    return () => { unsubAnn(); unsubRes(); };
   }, []);
 
-  const saveToStorage = (items: BarangayAnnouncement[]) => {
-    setAnnouncements(items);
-    try {
-      localStorage.setItem("apila_announcements", JSON.stringify(items));
-    } catch {}
+  // ── Filters ────────────────────────────────────────────────────────────
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [priorityFilter, setPriorityFilter] = useState("ALL");
+
+  const filtered = announcements.filter((a) => {
+    const matchSearch =
+      search.trim() === "" ||
+      a.title.toLowerCase().includes(search.toLowerCase()) ||
+      a.message.toLowerCase().includes(search.toLowerCase());
+    const matchCat = categoryFilter === "ALL" || a.category === categoryFilter;
+    const matchPri = priorityFilter === "ALL" || a.priority === priorityFilter;
+    return matchSearch && matchCat && matchPri;
+  });
+
+  // ── Modal ──────────────────────────────────────────────────────────────
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState(emptyForm);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [successBanner, setSuccessBanner] = useState<string | null>(null);
+
+  const openModal = () => {
+    setFormData(emptyForm);
+    setSaveError("");
+    setIsModalOpen(true);
   };
 
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim() || !formData.message.trim()) return;
-
-    let createdId = `anc-${Date.now()}`;
+    setIsSaving(true);
+    setSaveError("");
     try {
-      const docId = await createAnnouncement({
+      const id = await createAnnouncement({
         title: formData.title.trim(),
         category: formData.category,
         priority: formData.priority,
         targetAudience: formData.targetAudience,
         message: formData.message.trim(),
-        pushNotification: formData.pushNotification,
-        publishedBy: "Admin",
+        pushNotification: true,
+        publishedBy: officerName,
       });
-      if (docId) createdId = docId;
+      await logAuditEvent({
+        officer: officerName,
+        action: `Published announcement "${formData.title}" → ${formData.targetAudience} (${formData.priority})`,
+        category: "Announcements",
+        ipTerminal: "Admin Web",
+        status: "Success",
+      });
+      setIsModalOpen(false);
+      setSuccessBanner(`📢 "${formData.title}" broadcast to ${formData.targetAudience}`);
+      setTimeout(() => setSuccessBanner(null), 5000);
     } catch (err) {
-      console.warn("Firestore create announcement skipped:", err);
+      setSaveError("Failed to publish. Check your connection and try again.");
+      console.error(err);
+    } finally {
+      setIsSaving(false);
     }
-
-    const newAnnouncement: BarangayAnnouncement = {
-      id: createdId,
-      title: formData.title.trim(),
-      category: formData.category,
-      priority: formData.priority,
-      targetAudience: formData.targetAudience,
-      message: formData.message.trim(),
-      createdAt: new Date().toISOString(),
-      pushSent: formData.pushNotification,
-      reachCount: formData.targetAudience.includes("All") ? registeredUserCount : Math.round(registeredUserCount * 0.3),
-    };
-
-    const updated = [newAnnouncement, ...announcements];
-    saveToStorage(updated);
-
-    // Reset Form
-    setFormData({
-      title: "",
-      category: "General Advisory",
-      priority: "Normal",
-      targetAudience: "All Residents",
-      message: "",
-      pushNotification: true,
-    });
-    setIsModalOpen(false);
-
-    setSuccessBanner(
-      formData.pushNotification
-        ? `Advisory published and push notification broadcasted to ${newAnnouncement.reachCount} resident mobile devices.`
-        : "Advisory published to the APILA Community Board successfully."
-    );
-    setTimeout(() => setSuccessBanner(null), 4000);
   };
 
-  const handleDelete = (id: string) => {
-    const updated = announcements.filter((a) => a.id !== id);
-    saveToStorage(updated);
+  // ── Delete ─────────────────────────────────────────────────────────────
+  const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const confirmDelete = async () => {
+    if (!deleteTarget?.id) return;
+    setIsDeleting(true);
+    try {
+      await deleteAnnouncement(deleteTarget.id);
+      await logAuditEvent({
+        officer: officerName,
+        action: `Deleted announcement "${deleteTarget.title}"`,
+        category: "Announcements",
+        ipTerminal: "Admin Web",
+        status: "Success",
+      });
+      setDeleteTarget(null);
+    } catch {
+      // keep modal open
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
-  // Filtered
-  const filteredList = announcements.filter((item) => {
-    const matchesSearch =
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.targetAudience.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCat = categoryFilter === "ALL" || item.category === categoryFilter;
-    const matchesPri = priorityFilter === "ALL" || item.priority === priorityFilter;
-    return matchesSearch && matchesCat && matchesPri;
-  });
+  // ── Stats ──────────────────────────────────────────────────────────────
+  const urgentCount = announcements.filter((a) => a.priority === "Urgent").length;
+  const todayCount = announcements.filter((a) => {
+    if (!a.createdAt) return false;
+    const d = new Date(a.createdAt.seconds * 1000);
+    const now = new Date();
+    return d.toDateString() === now.toDateString();
+  }).length;
 
+  // ── Render ─────────────────────────────────────────────────────────────
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1400px] mx-auto selection:bg-[#F45113]/15 selection:text-[#F45113]">
-      {/* ── Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
-            Announcements
-          </h1>
-        </div>
+    <div className="p-6 space-y-6 bg-[#FFF9F3] min-h-screen">
 
-        {/* Primary CTA */}
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#F45113] hover:bg-[#d4430e] text-white text-xs font-bold rounded-2xl shadow-md shadow-orange-500/20 transition-all cursor-pointer self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Broadcast</span>
-        </button>
-      </div>
-
+      {/* Success Banner */}
       {successBanner && (
-        <div className="px-4 py-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 flex items-center justify-between gap-2 shadow-xs">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-            <span>{successBanner}</span>
-          </div>
-          <button
-            onClick={() => setSuccessBanner(null)}
-            className="text-emerald-700 hover:text-emerald-900 cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white text-sm font-bold rounded-2xl shadow-xl">
+          <CheckCircle2 className="w-4 h-4" />
+          {successBanner}
         </div>
       )}
 
-      {/* ── KPI Bento Grid ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Broadcasts */}
-        <div className="bg-white rounded-3xl border border-[#ECE7DF] p-5 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-xs text-[#64748B]">
-            <span className="font-bold uppercase tracking-wider text-[11px]">Total Advisories</span>
-            <Megaphone className="w-4 h-4 text-[#64748B]" />
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-extrabold text-[#0F172A]">Announcements</h1>
+            {isLive && (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">
+                <Wifi className="w-3 h-3" /> LIVE
+              </span>
+            )}
           </div>
-          <p className="text-3xl font-extrabold text-[#0F172A]">{announcements.length}</p>
-          <p className="text-[11px] text-[#64748B]">Published to community</p>
-        </div>
-
-        {/* Mobile Device Reach */}
-        <div className="bg-white rounded-3xl border border-[#ECE7DF] p-5 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-xs text-[#F45113]">
-            <span className="font-bold uppercase tracking-wider text-[11px]">Mobile App Reach</span>
-            <Smartphone className="w-4 h-4 text-[#F45113]" />
-          </div>
-          <p className="text-3xl font-extrabold text-[#0F172A]">{registeredUserCount.toLocaleString()}</p>
-          <p className="text-[11px] text-[#64748B]">Registered resident accounts</p>
-        </div>
-
-        {/* Urgent Alerts */}
-        <div className="bg-white rounded-3xl border border-[#ECE7DF] p-5 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-xs text-rose-600">
-            <span className="font-bold uppercase tracking-wider text-[11px]">Urgent / DRRM</span>
-            <AlertTriangle className="w-4 h-4 text-rose-500" />
-          </div>
-          <p className="text-3xl font-extrabold text-rose-600">
-            {announcements.filter((a) => a.priority === "Urgent").length}
+          <p className="text-xs text-[#64748B] mt-0.5">
+            {announcements.length} total · {urgentCount} urgent · {todayCount} today ·{" "}
+            <span className="text-[#F45113] font-semibold">{residentCount} residents</span> reachable
           </p>
-          <p className="text-[11px] text-[#64748B]">High-priority warnings</p>
         </div>
+        <button
+          onClick={openModal}
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#F45113] hover:bg-[#d4430e] text-white text-sm font-bold rounded-2xl shadow-md shadow-orange-500/20 transition-colors cursor-pointer"
+        >
+          <Megaphone className="w-4 h-4" />
+          Broadcast Announcement
+        </button>
+      </div>
 
-        {/* Broadcast Status */}
-        <div className="bg-white rounded-3xl border border-[#ECE7DF] p-5 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-xs text-emerald-700">
-            <span className="font-bold uppercase tracking-wider text-[11px]">Push Pipeline</span>
-            <Radio className="w-4 h-4 text-emerald-600 animate-pulse" />
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Total Sent", value: announcements.length, icon: Bell, color: "text-[#F45113]" },
+          { label: "Urgent / DRRM", value: urgentCount, icon: ShieldAlert, color: "text-rose-600" },
+          { label: "Sent Today", value: todayCount, icon: Zap, color: "text-amber-600" },
+          { label: "Residents Reached", value: residentCount, icon: Users, color: "text-emerald-600" },
+        ].map(({ label, value, icon: Icon, color }) => (
+          <div key={label} className="bg-white rounded-3xl border border-[#ECE7DF] px-4 py-3 flex items-center gap-3">
+            <div className={`p-2 rounded-xl bg-[#FFF9F3] ${color}`}>
+              <Icon className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-xl font-extrabold text-[#0F172A]">{value}</p>
+              <p className="text-[10px] font-semibold text-[#64748B] uppercase tracking-wide">{label}</p>
+            </div>
           </div>
-          <p className="text-3xl font-extrabold text-emerald-600">Active</p>
-          <p className="text-[11px] text-[#64748B]">FCM Push Service Live</p>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
+          <input
+            type="text"
+            placeholder="Search announcements…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-[#ECE7DF] bg-white text-sm text-[#0F172A] outline-none focus:border-[#F45113]"
+          />
+        </div>
+        <div className="relative">
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            className="appearance-none pl-3.5 pr-8 py-2.5 rounded-2xl border border-[#ECE7DF] bg-white text-sm font-semibold text-[#0F172A] outline-none focus:border-[#F45113] cursor-pointer"
+          >
+            <option value="ALL">All Priorities</option>
+            <option value="Urgent">Urgent</option>
+            <option value="Important">Important</option>
+            <option value="Normal">Normal</option>
+          </select>
+          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#94A3B8] pointer-events-none" />
+        </div>
+        <div className="relative">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="appearance-none pl-3.5 pr-8 py-2.5 rounded-2xl border border-[#ECE7DF] bg-white text-sm font-semibold text-[#0F172A] outline-none focus:border-[#F45113] cursor-pointer"
+          >
+            <option value="ALL">All Categories</option>
+            {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#94A3B8] pointer-events-none" />
         </div>
       </div>
 
-      {/* ── Filters & Search Bar ── */}
-      <div className="bg-white rounded-3xl border border-[#ECE7DF] p-4 sm:p-5 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3 flex-1">
-          {/* Search */}
-          <div className="relative min-w-[240px] flex-1 max-w-md">
-            <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search announcements by keywords or target audience..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-full border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113]"
-            />
-          </div>
-
-          {/* Priority Filter Pills */}
-          <div className="flex items-center p-1 rounded-full bg-[#FFF9F3] border border-[#ECE7DF]">
-            {(["ALL", "Urgent", "Important", "Normal"] as const).map((pri) => (
-              <button
-                key={pri}
-                onClick={() => setPriorityFilter(pri)}
-                className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
-                  priorityFilter === pri
-                    ? "bg-[#0F172A] text-white shadow-xs"
-                    : "text-[#64748B] hover:text-[#0F172A]"
+      {/* Announcement Feed */}
+      {filtered.length === 0 ? (
+        <div className="text-center py-20 text-[#94A3B8]">
+          <Megaphone className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p className="font-semibold">
+            {announcements.length === 0
+              ? "No announcements yet — broadcast your first one!"
+              : "No announcements match your filters."}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((ann) => {
+            const pri = PRIORITY_CONFIG[(ann.priority as Priority) ?? "Normal"];
+            return (
+              <div
+                key={ann.id}
+                className={`bg-white rounded-3xl border p-5 flex gap-4 items-start transition-shadow hover:shadow-md ${
+                  ann.priority === "Urgent" ? "border-rose-200" : "border-[#ECE7DF]"
                 }`}
               >
-                {pri === "ALL" ? "All Priorities" : pri}
-              </button>
-            ))}
-          </div>
+                {/* Icon */}
+                <div
+                  className={`flex-shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center ${
+                    ann.priority === "Urgent"
+                      ? "bg-rose-100 text-rose-600"
+                      : ann.priority === "Important"
+                      ? "bg-amber-100 text-amber-600"
+                      : "bg-[#FFF9F3] text-[#F45113]"
+                  }`}
+                >
+                  {ann.priority === "Urgent" ? (
+                    <ShieldAlert className="w-5 h-5" />
+                  ) : ann.priority === "Important" ? (
+                    <Bell className="w-5 h-5" />
+                  ) : (
+                    <Megaphone className="w-5 h-5" />
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <h3 className="font-extrabold text-[#0F172A] text-sm">{ann.title}</h3>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${pri.className}`}>
+                      {pri.icon} {pri.label}
+                    </span>
+                    {ann.category && (
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${CATEGORY_COLORS[ann.category] ?? "bg-gray-100 text-gray-600"}`}>
+                        {ann.category}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-[#64748B] leading-relaxed line-clamp-3">{ann.message}</p>
+
+                  {/* Meta row */}
+                  <div className="flex flex-wrap items-center gap-3 mt-2.5">
+                    <span className="flex items-center gap-1 text-[10px] text-[#94A3B8] font-semibold">
+                      <Users className="w-3 h-3" /> {ann.targetAudience}
+                    </span>
+                    <span className="flex items-center gap-1 text-[10px] text-[#94A3B8] font-semibold">
+                      <Clock className="w-3 h-3" /> {timeAgo(ann.createdAt)}
+                    </span>
+                    {ann.publishedBy && (
+                      <span className="text-[10px] text-[#94A3B8] font-semibold">
+                        by {ann.publishedBy}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1 text-[10px] text-emerald-600 font-bold">
+                      <Smartphone className="w-3 h-3" /> Sent to App
+                    </span>
+                  </div>
+                </div>
+
+                {/* Delete */}
+                <button
+                  onClick={() => setDeleteTarget(ann)}
+                  className="flex-shrink-0 p-2 rounded-xl hover:bg-rose-50 text-[#94A3B8] hover:text-rose-600 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            );
+          })}
         </div>
+      )}
 
-        <span className="text-xs text-[#64748B] font-semibold">
-          Showing {filteredList.length} of {announcements.length} advisories
-        </span>
-      </div>
-
-      {/* ── Announcements Feed ── */}
-      <div className="space-y-4">
-        {filteredList.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-[#ECE7DF] p-12 text-center shadow-sm">
-            <Bell className="w-8 h-8 text-[#94A3B8] mx-auto mb-2 opacity-50" />
-            <p className="font-bold text-sm text-[#0F172A]">No announcements found</p>
-            <p className="text-xs text-[#64748B] mt-0.5">
-              Try adjusting your search criteria or create a new advisory broadcast.
-            </p>
-          </div>
-        ) : (
-          filteredList.map((item) => (
-            <div
-              key={item.id}
-              className="bg-white rounded-3xl border border-[#ECE7DF] p-5 sm:p-6 shadow-sm hover:border-[#F45113]/40 transition-all space-y-3"
-            >
-              {/* Header Badges & Actions */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* Priority Badge */}
-                  {item.priority === "Urgent" && (
-                    <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
-                      <AlertTriangle className="w-3.5 h-3.5" /> Urgent Alert
-                    </span>
-                  )}
-                  {item.priority === "Important" && (
-                    <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                      Important
-                    </span>
-                  )}
-                  {item.priority === "Normal" && (
-                    <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                      Regular Advisory
-                    </span>
-                  )}
-
-                  {/* Category */}
-                  <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-[#FFF9F3] text-[#F45113] border border-[#ECE7DF]">
-                    {item.category}
-                  </span>
-
-                  {/* Target Audience */}
-                  <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-[#FFF9F3] text-[#64748B] border border-[#ECE7DF] flex items-center gap-1">
-                    <Users className="w-3 h-3 text-[#94A3B8]" />
-                    {item.targetAudience}
-                  </span>
-                </div>
-
-                {/* Timestamp & Delete */}
-                <div className="flex items-center gap-3 text-xs text-[#64748B] self-start sm:self-auto">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-[#94A3B8]" />
-                    {new Date(item.createdAt).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                    title="Delete Announcement"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Title & Message */}
-              <div>
-                <h3 className="text-base sm:text-lg font-extrabold text-[#0F172A] leading-snug">
-                  {item.title}
-                </h3>
-                <p className="text-xs sm:text-sm text-[#475569] mt-1.5 leading-relaxed">
-                  {item.message}
-                </p>
-              </div>
-
-              {/* Delivery Meta */}
-              <div className="pt-3 border-t border-[#ECE7DF] flex flex-wrap items-center justify-between text-[11px] text-[#64748B] gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span>
-                    Delivered to <strong className="text-[#0F172A]">{item.reachCount.toLocaleString()}</strong> mobile devices via APILA Resident App
-                  </span>
-                </div>
-                <span className="font-mono text-[10px] text-[#94A3B8]">ID: {item.id}</span>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* ── Publish Modal / Slide Dialog ── */}
+      {/* ── Compose Modal ──────────────────────────────────────────────────── */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl border border-[#ECE7DF] max-w-xl w-full p-6 sm:p-8 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-[#ECE7DF]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-[#ECE7DF]">
               <div>
-                <h2 className="text-lg font-extrabold text-[#0F172A]">
-                  Broadcast New Advisory
-                </h2>
-                <p className="text-xs text-[#64748B]">
-                  Send official announcements to Barangay Lapasan mobile app users.
+                <h2 className="text-lg font-extrabold text-[#0F172A]">Broadcast Announcement</h2>
+                <p className="text-xs text-[#64748B] mt-0.5">
+                  Publishes to Firestore → appears instantly on resident phones
                 </p>
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+                className="p-2 rounded-xl hover:bg-[#FFF9F3] text-[#64748B] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handlePublish} className="space-y-4">
+            <form onSubmit={handlePublish} className="p-6 space-y-4">
               {/* Title */}
               <div className="space-y-1">
                 <label className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-                  Advisory Title *
+                  Announcement Title *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Schedule Update: Health Consultation Hours"
+                  placeholder="e.g. Free Medical Check-up — Nov 5"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113]"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-sm font-semibold text-[#0F172A] outline-none focus:border-[#F45113]"
                 />
               </div>
 
-              {/* Grid: Category & Priority */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Category + Priority */}
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-                    Category
-                  </label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        category: e.target.value as BarangayAnnouncement["category"],
-                      })
-                    }
-                    className="w-full px-3.5 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113] cursor-pointer"
-                  >
-                    <option value="General Advisory">General Advisory</option>
-                    <option value="Program Update">Program Update</option>
-                    <option value="Emergency / DRRM">Emergency / DRRM</option>
-                    <option value="Health Advisory">Health Advisory</option>
-                    <option value="Community Service">Community Service</option>
-                  </select>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">Category *</label>
+                  <div className="relative">
+                    <select
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value as Category })}
+                      className="w-full appearance-none px-3.5 pr-8 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113] cursor-pointer"
+                    >
+                      {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#94A3B8] pointer-events-none" />
+                  </div>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-                    Priority Level
-                  </label>
-                  <select
-                    value={formData.priority}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        priority: e.target.value as BarangayAnnouncement["priority"],
-                      })
-                    }
-                    className="w-full px-3.5 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113] cursor-pointer"
-                  >
-                    <option value="Normal">Normal</option>
-                    <option value="Important">Important</option>
-                    <option value="Urgent">Urgent / Emergency</option>
-                  </select>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">Priority *</label>
+                  <div className="relative">
+                    <select
+                      value={formData.priority}
+                      onChange={(e) => setFormData({ ...formData, priority: e.target.value as Priority })}
+                      className="w-full appearance-none px-3.5 pr-8 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113] cursor-pointer"
+                    >
+                      <option value="Normal">Normal</option>
+                      <option value="Important">Important</option>
+                      <option value="Urgent">🚨 Urgent / Emergency</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#94A3B8] pointer-events-none" />
+                  </div>
                 </div>
               </div>
+
+              {/* Urgent warning */}
+              {formData.priority === "Urgent" && (
+                <div className="flex items-start gap-2.5 p-3 bg-rose-50 border border-rose-200 rounded-2xl">
+                  <ShieldAlert className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-rose-700 font-semibold">
+                    Urgent advisories appear as top-priority alerts in the resident app. Use only for emergencies or DRRM notices.
+                  </p>
+                </div>
+              )}
 
               {/* Target Audience */}
               <div className="space-y-1">
                 <label className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-                  Target Audience
+                  Target Audience *
                 </label>
-                <select
-                  value={formData.targetAudience}
-                  onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113] cursor-pointer"
-                >
-                  <option value="All Residents">All Residents (Entire Barangay)</option>
-                  <option value="Purok 1 - 5 (Coastal)">Purok 1 - 5 (Coastal)</option>
-                  <option value="Purok 6 - 10 (Upland)">Purok 6 - 10 (Upland)</option>
-                  <option value="Senior Citizens">Senior Citizens</option>
-                  <option value="Youth (15 - 30 yrs)">Youth (15 - 30 yrs)</option>
-                  <option value="Enrolled Program Participants">Enrolled Program Participants</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={formData.targetAudience}
+                    onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
+                    className="w-full appearance-none px-3.5 pr-8 py-2.5 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-semibold text-[#0F172A] outline-none focus:border-[#F45113] cursor-pointer"
+                  >
+                    {TARGET_AUDIENCES.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#94A3B8] pointer-events-none" />
+                </div>
               </div>
 
-              {/* Message Content */}
+              {/* Message */}
               <div className="space-y-1">
                 <label className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
                   Announcement Details *
                 </label>
                 <textarea
                   required
-                  rows={4}
-                  placeholder="Enter complete advisory message to display in the APILA resident mobile app..."
+                  rows={5}
+                  placeholder="Enter the full advisory message that will appear in the APILA resident mobile app…"
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                   className="w-full px-4 py-3 rounded-2xl border border-[#ECE7DF] bg-[#FFF9F3] text-xs font-medium text-[#0F172A] outline-none focus:border-[#F45113] resize-none"
                 />
+                <p className="text-[10px] text-[#94A3B8] text-right">{formData.message.length} chars</p>
               </div>
 
-              {/* Push Checkbox */}
-              <div className="p-3 rounded-2xl bg-[#FFF9F3] border border-[#ECE7DF] flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <Smartphone className="w-4 h-4 text-[#F45113]" />
-                  <div>
-                    <p className="text-xs font-bold text-[#0F172A]">
-                      Send Real-Time Push Notification
-                    </p>
-                    <p className="text-[10px] text-[#64748B]">
-                      Instantly alerts resident Android devices
-                    </p>
-                  </div>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={formData.pushNotification}
-                  onChange={(e) =>
-                    setFormData({ ...formData, pushNotification: e.target.checked })
-                  }
-                  className="w-4 h-4 text-[#F45113] rounded accent-[#F45113] cursor-pointer"
-                />
+              {/* Info notice */}
+              <div className="flex items-center gap-2.5 p-3 bg-[#FFF9F3] border border-[#ECE7DF] rounded-2xl">
+                <Smartphone className="w-4 h-4 text-[#F45113] flex-shrink-0" />
+                <p className="text-xs text-[#64748B] font-semibold">
+                  Publishing writes to Firestore → <span className="text-[#0F172A]">resident phones update instantly</span> via real-time listener. Reach: <span className="text-[#F45113] font-bold">{residentCount} residents</span>
+                </p>
               </div>
 
-              {/* Modal Buttons */}
+              {saveError && (
+                <p className="text-xs text-rose-600 font-semibold bg-rose-50 px-3 py-2 rounded-xl">{saveError}</p>
+              )}
+
+              {/* Footer */}
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#ECE7DF]">
                 <button
                   type="button"
@@ -553,13 +536,49 @@ export default function AdminAnnouncementsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="flex items-center gap-2 px-5 py-2.5 bg-[#F45113] hover:bg-[#d4430e] text-white text-xs font-bold rounded-2xl shadow-md shadow-orange-500/20 cursor-pointer"
+                  disabled={isSaving}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-[#F45113] hover:bg-[#d4430e] disabled:opacity-60 text-white text-xs font-bold rounded-2xl shadow-md shadow-orange-500/20 cursor-pointer transition-colors"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>Publish Advisory</span>
+                  {isSaving ? "Publishing…" : "Publish Advisory"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Confirm Modal ────────────────────────────────────────────── */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-rose-100 rounded-2xl">
+                <AlertTriangle className="w-6 h-6 text-rose-600" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-[#0F172A]">Delete Announcement?</h3>
+                <p className="text-xs text-[#64748B] mt-0.5">This will remove it from the resident app feed.</p>
+              </div>
+            </div>
+            <p className="text-sm text-[#0F172A] bg-[#FFF9F3] rounded-2xl px-4 py-3 font-semibold">
+              "{deleteTarget.title}"
+            </p>
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 py-2.5 rounded-2xl border border-[#ECE7DF] text-xs font-bold text-[#64748B] hover:text-[#0F172A] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white text-xs font-bold cursor-pointer transition-colors"
+              >
+                {isDeleting ? "Deleting…" : "Yes, Delete"}
+              </button>
+            </div>
           </div>
         </div>
       )}

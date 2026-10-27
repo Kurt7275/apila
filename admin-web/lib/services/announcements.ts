@@ -4,8 +4,10 @@ import {
   getDocs,
   addDoc,
   updateDoc,
+  deleteDoc,
   query,
   orderBy,
+  onSnapshot,
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
@@ -32,7 +34,22 @@ export async function getAnnouncements(): Promise<Announcement[]> {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Announcement));
 }
 
-export async function createAnnouncement(data: Omit<Announcement, "id" | "createdAt" | "updatedAt">) {
+export function subscribeToAnnouncements(
+  callback: (list: Announcement[]) => void
+): () => void {
+  const q = query(collection(db, COL), orderBy("createdAt", "desc"));
+  return onSnapshot(
+    q,
+    (snap) => {
+      callback(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Announcement)));
+    },
+    (err) => console.warn("Announcements listener error:", err)
+  );
+}
+
+export async function createAnnouncement(
+  data: Omit<Announcement, "id" | "createdAt" | "updatedAt">
+) {
   const ref = await addDoc(collection(db, COL), {
     ...data,
     createdAt: serverTimestamp(),
@@ -44,4 +61,8 @@ export async function createAnnouncement(data: Omit<Announcement, "id" | "create
 export async function updateAnnouncement(id: string, data: Partial<Announcement>) {
   const ref = doc(db, COL, id);
   await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
+}
+
+export async function deleteAnnouncement(id: string) {
+  await deleteDoc(doc(db, COL, id));
 }
